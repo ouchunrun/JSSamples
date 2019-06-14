@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>webAudio制造噪音并播放</title>
+    <style>
+        #mainContent {
+            width: 500px;
+            height: 300px;
+            background-color: skyblue;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: auto;
+            color: aliceblue;
+        }
+        p { word-wrap:break-word; }
+    </style>
+</head>
+<body>
+<div id="mainContent">
+    <ul>
+        <li>自制音频并播放</li>
+        <li>创建音频源</li>
+        <li>创建音量处理节点</li>
+        <li>节点关联与播放</li>
+        <li><button id="start">开始播放</button></li>
+        <li><button id="stop">停止播放</button></li>
+    </ul>
+</div>
+
+</body>
+<script>
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var audioCtx;
+    var oscillator;
+    var gainNode;
+
+    document.getElementById("start").onclick = function () {
+        // 创建音频上下文
+        audioCtx = new AudioContext();
+        // 创建音调控制对象
+        oscillator = audioCtx.createOscillator();
+        // 创建音量控制对象
+        gainNode = audioCtx.createGain();
+        // 音调音量关联
+        oscillator.connect(gainNode);
+        // 音量和设备关联
+        gainNode.connect(audioCtx.destination);
+        // 音调类型指定为正弦波
+        oscillator.type = 'sine';
+        // 设置音调频率196Hz，默认440
+        oscillator.frequency.value = 196.00;
+        // 先把当前音量设为0
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        // 2秒时间内音量从刚刚的0变成1，线性变化
+        gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 2);
+        // 声音走起
+        oscillator.start(audioCtx.currentTime);
+        // 2秒时间内音量从刚刚的1变成0.5，指数变化
+        gainNode.gain.exponentialRampToValueAtTime(0.5, audioCtx.currentTime + 2);
+    }
+    
+    document.getElementById("stop").onclick = function () {
+        // 1秒后停止声音
+        oscillator.stop(audioCtx.currentTime + 1);
+    }
+
+</script>
+</html>

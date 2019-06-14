@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>webAudio播放本地音乐</title>
+    <style>
+        #mainContent {
+            width: 500px;
+            height: 300px;
+            background-color: skyblue;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div id="mainContent">
+    <ul>
+        <li><input type="file" id="file" accept="audio/x-wav,audio/mpeg,mp4"  /></li>
+        <li><button id="stop">停止播放</button></li>
+    </ul>
+</div>
+
+</body>
+<script>
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = new AudioContext()
+    var source = audioCtx.createBufferSource();
+
+    document.getElementById('file').addEventListener('change', function(e) {
+        var read = new FileReader();
+
+        read.onload = function() {
+            console.log("File conversion completed");
+            var audioData = this.result;
+            // 将arrayBuffer转成audioBuffer
+            audioCtx.decodeAudioData(audioData).then(function(decodedData) {
+                source.buffer = decodedData;
+                source.connect(audioCtx.destination);
+                source.loop = true;
+                source.start(0);
+            }).catch(function (error) {
+                console.error(error.toString());
+            });
+        };
+        // 利用filereader将file转成arraybuffer格式
+        read.readAsArrayBuffer(this.files[0]);
+    });
+
+    document.getElementById("stop").onclick = function () {
+        console.log("Stop play");
+        source.stop();
+        location.reload();
+    }
+</script>
+</html>
