@@ -1,4 +1,4 @@
-
+听到声音的过程：声源激励、声道共振和口鼻辐射。
 
 
 ## WebAudio.js 源码 
@@ -53,7 +53,14 @@ HTML5 Web Audio API可以让我们无中生有创造声音，而且是各种音�
 
 
 ---
-### 接口
+### AudioContext属性
+
+- AudioContext.destination
+    - 返回 AudioDestinationNode 对象，表示当前 AudioContext 中所有节点的最终节点，一般表示音频渲染设备。
+
+
+---
+### AudioContext方法
 
 AudioContext：
 
@@ -61,41 +68,73 @@ AudioContext接口代表由音频模块构成的音频处理图，是HTML5 Web A
 
 一般向前兼容一下老的webkit浏览器会做如下处理：
 ```javascript
- window.AudioContext = window.AudioContext || window.webkitAudioContext;
-var audioCtx = new AudioContext();
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = new AudioContext();
 ```
 
 
-audioCtx.createOscillator创造的音调有几个参数：
+- audioCtx.createOscillator。
+    - 创建一个 OscillatorNode, 它表示一个周期性波形，基本上来说创造了一个音调。
+    - type：表明声波的不同类型，有`sine，square，sawtooth，triangle`四种类型；
+    - frequency：表示声音的频率。
 
-- type：表明声波的不同类型，有`sine，square，sawtooth，triangle`四种类型；
-- frequency：表示声音的频率。
+- AudioContext接口的createMediaStreamSource()方法
+    - 用于创建一个新的MediaStreamAudioSourceNode 对象, 需要传入一个媒体流对象(MediaStream对象)(可以从 navigator.getUserMedia 获得MediaStream对象实例), 然后来自MediaStream的音频就可以被播放和操作。
 
+- AudioContext 接口的 createMediaElementSource() 方法
+    - 用于创建一个新的 MediaElementAudioSourceNode 对象,输入某个存在的 HTML <audio> or <video> 元素, 对应的音频即可被播放或者修改.
+ 
+- AudioContext.createBufferSource()
+    - 创建一个 AudioBufferSourceNode 对象, 他可以通过 AudioBuffer 对象来播放和处理包含在内的音频数据。
+    
+- AudioContext的createAnalyser()方法           
+    - 获取音频时间和频率数据，以及实现数据可视化    
+    - AnalyserNode 接口fftSize 属性的值必须是从32到32768范围内的2的非零幂; 其默认值为2048.
+    
+- AudioContext.createGain()
+    - 创建一个 GainNode,它可以控制音频的总音量。
+    
+- AudioContext.createBiquadFilter()方法，创建滤波器。它支持的滤波器有如下这些：                                         
+    - 低通滤波器：lowpass，低于截止频率的频率通过;
+    - 高通滤波器：highpass，高于截止频率的频率通过;
+    - 带通滤波器：bandpass，给定范围的频率通过；
+    - 低架滤波器：lowshelf，低于给定频率的做衰减或促进，高于的频率不做改变
+    - 高架滤波器：highshelf，高于给定频率的做衰减或促进，低于的频率不做改变
+    - 峰值滤波器：peaking，给定范围内的频率做一个促进或衰减，范围外的不做改变
+    - 陷波滤波器：notch，给定范围内的频率做一个衰减，范围外的通过
+    - 全通滤波器：allpass，它允许所有频率通过，但改变各种频率之间的相位关系。
+    
+        
+### Analyser 方法
 
+- AnalyserNode.getByteTimeDomainData()方法用于获取音频时域数据
 
-Demo用到的接口/方法简单描述：
-
-- AnalyserNode.getByteTimeDomainData()方法用于获取音频时域数据，
 - AnalyserNode.getByteFrequencyData()方法用于获取音频频域数据。
+    - 通过getByteFrequencyData方法，可以获取到当前的频域数据。但每次调用getByteFrequencyData只会获取当时的数据，要想连续不断的获取频域数据，就要不断的调用getByteFrequencyData来获取数据，这时肯定不能用setInterval，因为数据量一大，还要不停的绘图，它根本跟不上节奏啊，表现就是频谱图有点卡，感觉像掉帧似得，而requestAnimationFrame是专为js动画所提供的api，效果自然比setInterval好得多。
+    
+- AnalyserNode接口的getByteFrequencyData()方法  
+    - 将当前频率数据复制到传入的Uint8Array（无符号字节数组）中。    
+    
+- AnalyserNode.getByteTimeDomainData() 
+    - 用于获取音频时域数据 
+    
+- window.requestAnimationFrame()    
+    - 告诉浏览器——你希望执行一个动画，并且要求浏览器在下次重绘之前调用指定的回调函数更新动画该方法需要传入一个回调函数作为参数，该回调函数会在浏览器下一次重绘之前执行   
 
-|               方法                |                        描述                  | 
-| --------------------------------- | -------------------------------------------- |
-|AudioContext接口的createMediaStreamSource()方法| 用于创建一个新的MediaStreamAudioSourceNode 对象, 需要传入一个媒体流对象(MediaStream对象)(可以从 navigator.getUserMedia 获得MediaStream对象实例), 然后来自MediaStream的音频就可以被播放和操作。|
-|AudioContext 接口的 createMediaElementSource() 方法| 用于创建一个新的 MediaElementAudioSourceNode 对象,输入某个存在的 HTML <audio> or <video> 元素, 对应的音频即可被播放或者修改.|
-|AudioContext的createAnalyser()方法             |  获取音频时间和频率数据，以及实现数据可视化    |
-|AnalyserNode接口的getByteFrequencyData()方法   |  将当前频率数据复制到传入的Uint8Array（无符号字节数组）中。    |
-|  AnalyserNode.getByteTimeDomainData() |  用于获取音频时域数据 |
-|window.requestAnimationFrame()     |   告诉浏览器——你希望执行一个动画，并且要求浏览器在下次重绘之前调用指定的回调函数更新动画该方法需要传入一个回调函数作为参数，该回调函数会在浏览器下一次重绘之前执行   |
+
+
+#### 滤波器
+
+
 
 
 ---
 ### ArrayBuffer的几种来源方式
 
-- 通过本地文件上传（input type="file"）方式获取的音频文件
-- 通过XHR异步请求的方式获取音频数据(注意需要返回arraybuffer类型)
-- 通过createOscillator方法自己创造一个AudioBuffer
-- 使用 navigator.mediaDevices.getUserMedia 通过硬件设备（mic）获取
-- 解析二进制数据
+- 通过API自带的 Oscillator （振荡器）来直接产生指定频率的正弦波。
+- 从arraybuffer中读取音频的二进制数据，这个是最常用的做法，通过ajax或者filereader API可直接获得音频的arraybuffer，无需额外操作。
+- 从媒体标签中获取音频，比如audio标签，这个使用应该也不多，毕竟能用audio标签的地方多半可直接获取音频的arraybuffer。
+- 通过webrtc来获取外界实时的音频(navigator.mediaDevices.getUserMedia )，比如电脑上的麦克风。这个又是一个高频使用需求。
 
 
 ---

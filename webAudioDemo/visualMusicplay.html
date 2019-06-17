@@ -22,9 +22,14 @@
         <h1>audio读取声音频域图</h1>
         <canvas id="canvasFormAudio" width="640"></canvas>
 
+        <h1>时域图模仿(S)</h1>
+        <canvas id="canvasOneOfTime" width="640"></canvas>
 
-        <h1>频域图模仿</h1>
+        <h1>频域图模仿(HZ)</h1>
         <canvas id="canvasOne" width="640"></canvas>
+
+        <h1>正弦波</h1>
+        <canvas id="sineWave" width="640"></canvas>
 
         <h1>圆形声波图</h1>
         <canvas id="canvasTwo" width="800" height="800"></canvas>
@@ -37,12 +42,17 @@
         // var audioCtx = new AudioContext();
         var ctx;
         var ctx2;
+        var ctxTime;
         var audioContext;
         var analyser;
-        var mic;
+        var micSource;
         var canvasOne;
+        var canvasOneOfTime;
         var canvasTwo;
         var constraints = {audio: true};
+        var biquadFilter;
+        var canvasCtx;
+        var canvasSineWave;
 
         <!------------------------------------ 从麦克风设备读取声音的波形图显示 -------------------------------->
         function init() {
@@ -50,34 +60,123 @@
             ctx = canvasOne.getContext("2d");
             canvasTwo = document.getElementById('canvasTwo');
             ctx2 = canvasTwo.getContext("2d");
+            canvasOneOfTime = document.getElementById('canvasOneOfTime');
+            ctxTime = canvasOneOfTime.getContext("2d");
+            canvasSineWave = document.getElementById('sineWave');
+            canvasCtx = canvasSineWave.getContext("2d");
 
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(function (stream) {
                     audioContext = new AudioContext();
                     console.log("audioCtx state: ", audioContext.state);
-                    mic = audioContext.createMediaStreamSource(stream);
+                    micSource = audioContext.createMediaStreamSource(stream);
                     analyser = audioContext.createAnalyser();
                     analyser.fftSize = 256;   // 傅里叶变换参数
-                    mic.connect(analyser);
-                    drawSpectrum();
+                    micSource.connect(analyser);
+
+                    biquadFilter();
+                    timeDomain();
+                    frequency();
+                    Sonogram();
+                    sineWave();
                 })
                 .catch(function (error) {
                     console.error(error.toString());
                 });
         }
 
-        function drawSpectrum() {
+        /**
+         * Biquad过滤器
+         * 人耳听觉范围： 20HZ----20KHZ
+         * */
+        function biquadFilter() {
+            biquadFilter = audioContext.createBiquadFilter();
+            biquadFilter.type = 'lowpass';  // 高通 滤波器
+            biquadFilter.frequency.value = 160;   // 设置截止位置为 1000HZ
+            micSource.connect(biquadFilter);
+            biquadFilter.connect(audioContext.destination);
+        }
+
+        /** 时域图 */
+        function timeDomain() {
+            var array = new Uint8Array(128);
+            var WIDTH2 = canvasOneOfTime.width;
+            var HEIGHT2 = canvasOneOfTime.height;
+
+            analyser.getByteTimeDomainData(array);
+            ctxTime.clearRect(0, 0, WIDTH2, HEIGHT2);
+            for (var i = 0; i < (array.length); i++) {
+                var value = array[i];
+                ctxTime.fillRect(i * 5, HEIGHT2 - value, 3, HEIGHT2);
+            }
+            requestAnimationFrame(timeDomain)
+        }
+
+        /** 频域图 */
+        function frequency() {
+            var array = new Uint8Array(128);
             var WIDTH = canvasOne.width;
             var HEIGHT = canvasOne.height;
 
-            var array = new Uint8Array(128);
             analyser.getByteFrequencyData(array);
             ctx.clearRect(0, 0, WIDTH, HEIGHT);
-            ctx2.clearRect(0, 0, 800, 800);
             for (var i = 0; i < (array.length); i++) {
                 var value = array[i];
                 ctx.fillRect(i * 5, HEIGHT - value, 3, HEIGHT);
             }
+            requestAnimationFrame(frequency)
+        }
+
+        /** 正弦波形图 */
+        function sineWave() {
+            analyser.fftSize = 2048;
+            var bufferLength = analyser.fftSize;
+            var WIDTH = canvasSineWave.width;
+            var HEIGHT = canvasSineWave.height;
+
+            var dataArray = new Uint8Array(bufferLength);
+            canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            var draw = function() {
+                requestAnimationFrame(draw);
+                analyser.getByteTimeDomainData(dataArray);
+
+                canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+                canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+                canvasCtx.lineWidth = 2;
+                canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+
+                canvasCtx.beginPath();
+
+                var sliceWidth = WIDTH * 1.0 / bufferLength;
+                var x = 0;
+
+                for(var i = 0; i < bufferLength; i++) {
+                    var v = dataArray[i] / 128.0;
+                    var y = v * HEIGHT/2;
+
+                    if(i === 0) {
+                        canvasCtx.moveTo(x, y);
+                    } else {
+                        canvasCtx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+                canvasCtx.lineTo(canvasSineWave.width, canvasSineWave.height/2);
+                canvasCtx.stroke();
+            };
+
+            draw();
+        }
+
+
+        /** 圆形声波图 */
+        function Sonogram() {
+            var array = new Uint8Array(128);
+            ctx2.clearRect(0, 0, 800, 800);
+            analyser.getByteFrequencyData(array);
 
             for (var i = 0; i < (array.length); i++) {
                 var value = array[i];
@@ -87,9 +186,8 @@
                 ctx2.strokeStyle = "rgba(" + value + "," + value + ",0,0.2)";
                 ctx2.stroke();//画空心圆
                 ctx2.closePath();
-
             }
-            requestAnimationFrame(drawSpectrum);
+            requestAnimationFrame(Sonogram)
         }
 
 
@@ -115,32 +213,28 @@
             myAudio = document.getElementById("audio");
             context1 = new AudioContext();
             analyserfa = context1.createAnalyser();
+            analyserfa.fftSize = 2048;   // 傅里叶变换参数， fftSize 属性的值必须是从32到32768范围内的2的非零幂; 其默认值为2048.
 
             console.log("context1 state: ", context1.state);
             var source = context1.createMediaElementSource(myAudio);
             source.connect(analyserfa);
             analyserfa.connect(context1.destination);
             drawSpectrumfa();
-
         }, false);
 
         function drawSpectrumfa() {
             var WIDTH = canvasFormAudio.width;
             var HEIGHT = canvasFormAudio.height;
 
-            var array = new Uint8Array(128);
+            var array = new Uint8Array(analyserfa.fftSize);
             analyserfa.getByteFrequencyData(array);   // 频域
             // analyserfa.getByteTimeDomainData(array);    // 时域
-
-            // 获取所有频率振幅
-            var average = getAverageFrequency(array);
 
             ctxfa.clearRect(0, 0, WIDTH, HEIGHT);
             for (var i = 0; i < (array.length); i++) {
                 var value = array[i];
                 ctxfa.fillRect(i * 5, HEIGHT - value, 3, HEIGHT);
             }
-
             requestAnimationFrame(drawSpectrumfa);
         }
 
@@ -156,7 +250,6 @@
             }
             average = values / length;
             // console.warn("获得所有频率振幅的平均振幅：" + average);  speechRateCalculation
-
             return average;
         }
     </script>
