@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+    function WebClient() {
+        WebClient.prototype.isopen = false;
+        this.webSocket = null;
+        this.connectUrl = function (url) {
+            this.webSocket = new WebSocket(url);
+            this.webSocket.onerror = function (event) {
+                WebClient.prototype.callerrorbak(event);
+            }
+            this.webSocket.onopen = function (event) {
+                WebClient.prototype.setConnFlag(true);
+                WebClient.prototype.callopenbak(event);
+            }
+            this.webSocket.onclose = function (event) {
+                WebClient.prototype.callclosebak(event);
+                WebClient.prototype.unInit();
+            }
+            this.webSocket.onmessage = function (event) {
+                WebClient.prototype.callmsgbak(event.data);
+            }
+            return true;
+        };
+        // 收到消息
+        if (typeof WebSocket._callmsgbak == "undefined") {
+            WebClient.prototype.callmsgbak = function (data) {
+                console.warn(data)
+
+            }
+            WebClient._callmsgbak = true;
+        }
+        // 连接成功
+        if (typeof WebClient._callopenbak == "undefined") {
+            WebClient.prototype.callopenbak = function (data) {
+                console.warn(data)
+
+            }
+            WebClient._callopenbak = true;
+        }
+        // 连接错误
+        if (typeof WebClient._callerrorbak == "undefined") {
+            WebClient.prototype.callerrorbak = function (data) {
+                console.warn(data)
+
+            }
+            WebClient._callerrorbak = true;
+        }
+        // 连接关闭
+        if (typeof WebClient._callclosebak == "undefined") {
+            WebClient.prototype.callclosebak = function (data) {
+                console.warn(data)
+
+            }
+            WebClient._callclosebak = true;
+        }
+        // 是否连接
+        if (typeof WebClient._isConn == "undefined") {
+            WebClient.prototype.isConn = function (data) {
+                console.warn(data)
+                return WebClient.prototype.isopen;
+            }
+            WebClient._isConn = true;
+        }
+        // 设置是否连接的标志位
+        if (typeof WebClient._setConnFlag == "undefined") {
+            WebClient.prototype.setConnFlag = function (flag) {
+                console.warn(flag)
+                WebClient.prototype.isopen = flag;
+            }
+            WebClient._setConnFlag = true;
+        }
+        if (typeof WebClient._connect == "undefined") {
+            WebClient.prototype.connect = function (url, msgbak, openbak, errorbak, closebak) {
+                WebClient.prototype.callmsgbak = msgbak;
+                WebClient.prototype.callopenbak = openbak;
+                WebClient.prototype.callerrorbak = errorbak;
+                WebClient.prototype.callclosebak = closebak;
+                if (this.webSocket == null)//表示连接成功
+                {
+                    this.connectUrl(url);
+                } else if (this.webSocket.readyState == 3) {
+                    this.webSocket = null;
+                    this.connectUrl(url);
+                }
+                if (this.webSocket.readyState != 1) {
+                    return false;
+                }
+                return true;
+            }
+            WebClient._connect = true;
+        }
+
+        // 向服务器发送消息
+        if (typeof WebClient._sendData == "undefined") {
+            WebClient.prototype.sendData = function (data) {
+                if (WebClient.prototype.isConn() && this.webSocket != null) {
+                    console.warn(data)
+                    this.webSocket.send(data);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            WebClient._sendData = true;
+        }
+        // 关闭连接
+        if (typeof WebClient._close == "undefined") {
+            WebClient.prototype.close = function (data) {
+                this.webSocket.close(1000, "Closeing");
+                WebClient.prototype.isopen = false;
+                this.webSocket = null;
+                return true;
+            }
+            WebClient._close = true;
+        }
+        if (typeof WebClient._uninit == "undefined") {
+            WebClient.prototype.unInit = function (data) {
+                WebClient.prototype.isopen = false;
+                this.webSocket = null;
+                return true;
+            }
+            WebClient._uninit = true;
+        }
+    }
+</script>
+
+</body>
+</html>
