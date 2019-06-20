@@ -98,21 +98,6 @@ CreateWebsocket.prototype.websocketSendMessage = function(data, This){
 CreateWebsocket.prototype.websocketIncomingMessage = function (evt, This) {
     console.warn("websocketIncomingMessage");
     console.warn(evt.data);
-    // var o_ragel_state = tsk_ragel_state_create();
-    // if(typeof(evt.data) == 'string'){
-    //     tsk_ragel_state_init_str(o_ragel_state, evt.data);
-    // }
-    // else{
-    //     tsk_ragel_state_init_ai(o_ragel_state, evt.data);
-    //     if(o_ragel_state.s_data && o_ragel_state.s_data.indexOf('NOTIFY sip') == -1){
-    //         //transportlog.warn('recv not-sip message');
-    //         var blob = new Blob([evt.data]);
-    //         tsk_blob_parse({blob: blob, o_self: This, cb: function (This, data) {
-    //                 console.warn("收到非 invite 消息", data);
-    //             }});
-    //         return;
-    //     }
-    // }
 
     if( evt.data === "\r\n"){
         /* websocket保活包 */

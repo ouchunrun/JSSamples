@@ -1,134 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/offcanvas.css">
+    <title>webSocket 封装</title>
 </head>
 <body>
-<script>
-    function WebClient() {
-        WebClient.prototype.isopen = false;
-        this.webSocket = null;
-        this.connectUrl = function (url) {
-            this.webSocket = new WebSocket(url);
-            this.webSocket.onerror = function (event) {
-                WebClient.prototype.callerrorbak(event);
-            }
-            this.webSocket.onopen = function (event) {
-                WebClient.prototype.setConnFlag(true);
-                WebClient.prototype.callopenbak(event);
-            }
-            this.webSocket.onclose = function (event) {
-                WebClient.prototype.callclosebak(event);
-                WebClient.prototype.unInit();
-            }
-            this.webSocket.onmessage = function (event) {
-                WebClient.prototype.callmsgbak(event.data);
-            }
-            return true;
-        };
-        // 收到消息
-        if (typeof WebSocket._callmsgbak == "undefined") {
-            WebClient.prototype.callmsgbak = function (data) {
-                console.warn(data)
-
-            }
-            WebClient._callmsgbak = true;
-        }
-        // 连接成功
-        if (typeof WebClient._callopenbak == "undefined") {
-            WebClient.prototype.callopenbak = function (data) {
-                console.warn(data)
-
-            }
-            WebClient._callopenbak = true;
-        }
-        // 连接错误
-        if (typeof WebClient._callerrorbak == "undefined") {
-            WebClient.prototype.callerrorbak = function (data) {
-                console.warn(data)
-
-            }
-            WebClient._callerrorbak = true;
-        }
-        // 连接关闭
-        if (typeof WebClient._callclosebak == "undefined") {
-            WebClient.prototype.callclosebak = function (data) {
-                console.warn(data)
-
-            }
-            WebClient._callclosebak = true;
-        }
-        // 是否连接
-        if (typeof WebClient._isConn == "undefined") {
-            WebClient.prototype.isConn = function (data) {
-                console.warn(data)
-                return WebClient.prototype.isopen;
-            }
-            WebClient._isConn = true;
-        }
-        // 设置是否连接的标志位
-        if (typeof WebClient._setConnFlag == "undefined") {
-            WebClient.prototype.setConnFlag = function (flag) {
-                console.warn(flag)
-                WebClient.prototype.isopen = flag;
-            }
-            WebClient._setConnFlag = true;
-        }
-        if (typeof WebClient._connect == "undefined") {
-            WebClient.prototype.connect = function (url, msgbak, openbak, errorbak, closebak) {
-                WebClient.prototype.callmsgbak = msgbak;
-                WebClient.prototype.callopenbak = openbak;
-                WebClient.prototype.callerrorbak = errorbak;
-                WebClient.prototype.callclosebak = closebak;
-                if (this.webSocket == null)//表示连接成功
-                {
-                    this.connectUrl(url);
-                } else if (this.webSocket.readyState == 3) {
-                    this.webSocket = null;
-                    this.connectUrl(url);
-                }
-                if (this.webSocket.readyState != 1) {
-                    return false;
-                }
-                return true;
-            }
-            WebClient._connect = true;
-        }
-
-        // 向服务器发送消息
-        if (typeof WebClient._sendData == "undefined") {
-            WebClient.prototype.sendData = function (data) {
-                if (WebClient.prototype.isConn() && this.webSocket != null) {
-                    console.warn(data)
-                    this.webSocket.send(data);
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-            WebClient._sendData = true;
-        }
-        // 关闭连接
-        if (typeof WebClient._close == "undefined") {
-            WebClient.prototype.close = function (data) {
-                this.webSocket.close(1000, "Closeing");
-                WebClient.prototype.isopen = false;
-                this.webSocket = null;
-                return true;
-            }
-            WebClient._close = true;
-        }
-        if (typeof WebClient._uninit == "undefined") {
-            WebClient.prototype.unInit = function (data) {
-                WebClient.prototype.isopen = false;
-                this.webSocket = null;
-                return true;
-            }
-            WebClient._uninit = true;
-        }
-    }
-</script>
-
+<div style="margin-left: 50px;">
+    <div>
+        <input type="text" value="ws://localhost:3000" class="form-control"  id="wsAddr" style="width:390px;display:inline">
+        <div class="btn-group" role="group" aria-label="...">
+            <button type="button" class="btn btn-default" onclick="addWebSocket();">连接</button>
+            <!--<button type="button" class="btn btn-default" onclick="closeWebSocket();">断开</button>-->
+            <!--<button type="button" class="btn btn-default" >清空</button>-->
+            <!--<button type="button" class="btn btn-default" >示例-->
+            </button>
+        </div>
+        <div style="margin-top:10px;margin-button:10px">
+            <pre>本工具主要是为了测试webSocket封装！</pre>
+        </div>
+    </div>
+    <div class="row">
+        <div id="output" style="border:1px solid #ccc;height:365px; width: 810px;overflow: auto;margin-left:15px"></div>
+        <div class="col-lg-6">
+            <div class="input-group">
+                <input type="text" id="message" class="form-control" style="width:810px" placeholder="待发信息">
+                <span class="input-group-btn" style="display: inline-block;float: right;position: absolute;">
+                        <button class="btn btn-default" type="button" onclick="sendMessage();">发送</button>
+                    </span>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="wsPackage.js"></script>
 </body>
 </html>

@@ -4,12 +4,6 @@
 var wsSendrecv = null;
 var url = "wss://xmeetings.ipvideotalk.com:443/ws";
 var protocol = "wss";
-var binaryType = "arraybuffer";
-var reconnectAttempt = 0;      // 当前重连次数
-var maxReconnectAttempts = 3;   // 最大重连次数
-var keepAliveAttempt = 0;      // 当前保活次数
-var wsKeepAliveTimer = null;    // 保活定时器
-var wsReconnectTimer = null;    // 重连定时器
 
 var messageElem = document.getElementById('message');
 
@@ -32,8 +26,8 @@ function formatDate(now) {
 function addWebSocket() {
     var wsURL = document.getElementById('wsAddr').value;
     if (!wsURL) {
-        console.log("请填写websocket的地址");
-        return false;
+        console.log("use local server：ws://localhost:3000");
+        wsURL = "ws://localhost:3000";
     }
     StartWebSocket(wsURL);
 }
@@ -42,7 +36,7 @@ function addWebSocket() {
  * 建立 webSocket 实例
  */
 function StartWebSocket(url) {
-    console.log("Connecting to '" + url);
+    console.warn("Connecting to '" + url);
     wsSendrecv = new WebSocket(url);
     wsSendrecv.onopen = function (evt) {
         websocketOnOpen(evt)
