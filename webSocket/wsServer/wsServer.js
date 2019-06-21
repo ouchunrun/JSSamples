@@ -15,24 +15,26 @@ server.on('connection', function (ws) {
 
     // 收到消息
     ws.on('message', function (message) {
+        ws.binaryType = 'arraybuffer';
+
         console.log(`[SERVER] Received: ${message}`);
 
-        // if(message == " "){
-        //     console.warn("收到的是保活包。。。");
-        //     // 给客户端返回消息
-        //     ws.send("\r\n", (err) => {
-        //         if (err) {
-        //             console.log(`[SERVER] error: ${err}`);
-        //         }
-        //     });
-        // }else {
-        //     // 给客户端返回消息
-        //     ws.send(`ECHO: ${message}`, (err) => {
-        //         if (err) {
-        //             console.log(`[SERVER] error: ${err}`);
-        //         }
-        //     });
-        // }
+        if(message === "\r\n\r\n"){
+            console.warn("收到的是保活包。。。");
+            // 给客户端返回保活包 \r\n
+            ws.send("\r\n", (err) => {
+                if (err) {
+                    console.log(`[SERVER] error: ${err}`);
+                }
+            });
+        }else {
+            // 给客户端返回消息
+            ws.send(`ECHO: ${message}`, (err) => {
+                if (err) {
+                    console.log(`[SERVER] error: ${err}`);
+                }
+            });
+        }
     });
 
     // 连接关闭
