@@ -13,16 +13,14 @@
 <div style="margin-left: 50px;">
     <div>
         <!--本地服务器-->
-        <!--<input type="text" value="ws://localhost:3000" class="form-control"  id="wsAddr" style="width:390px;display:inline">-->
+        <input type="text" value="ws://localhost:3000" class="form-control"  id="wsAddr" style="width:390px;display:inline">
         <!--IPVT服务器-->
-        <!-- var url = "ws://123.207.167.163:9010/ajaxchattest";-->
-        <!--var url = "wss://xmeetings.ipvideotalk.com:443/ws";-->
-        <input type="text" value="wss://xmeetings.ipvideotalk.com:443/ws" class="form-control"  id="wsAddr" style="width:390px;display:inline">
+        <!--<input type="text" value="wss://xmeetings.ipvideotalk.com:443/ws" class="form-control"  id="wsAddr" style="width:390px;display:inline">-->
 
         <div class="btn-group" role="group" aria-label="...">
             <button type="button" class="btn btn-default" onclick="addWebSocket();">连接</button>
-            <!--<button type="button" class="btn btn-default" onclick="closeWebSocket();">断开</button>-->
-            <button type="button" class="btn btn-default" onclick="sendInvite();">发送Invite</button>
+            <button type="button" class="btn btn-default" onclick="closeWebSocket();">断开</button>
+            <!--<button type="button" class="btn btn-default" onclick="sendInvite();">发送Invite</button>-->
             <!--<button type="button" class="btn btn-default" >示例-->
             </button>
         </div>
@@ -43,5 +41,10 @@
     </div>
 </div>
 <script src="wsPackage.js"></script>
+<script>
+    function closeWebSocket() {
+        console.log("该方法用于断开webSocket连接。。。");
+    }
+</script>
 </body>
 </html>
