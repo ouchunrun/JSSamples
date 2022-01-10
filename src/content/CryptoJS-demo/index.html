@@ -4,12 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="icon" href="data:image/ico;base64,aWNv">
     <title>Crypto JS Demo</title>
+    <style>
+        .container{
+            text-align: center;
+            width: 600px;
+            margin: 0 auto;
+            border: 1px solid;
+            min-height: 400px;
+            background: darkkhaki;
+        }
+        textarea{
+            width: 90%;
+        }
+        #secretKey{
+            height: 40px;
+        }
+        #cipherText{
+            height: 100px;
+        }
+        button{
+            width: 90%;
+            height: 30px;
+            background: #efb300;
+        }
+    </style>
 </head>
 <body>
 
-<a href="https://blueimp.github.io/JavaScript-MD5/" target="_blank">JavaScript MD5 演示</a><br>
-<a href="https://the-x.cn/cryptography/Aes.aspx" target="_blank">AES加密/解密</a>
+<div class="container">
+    <h2>参考</h2>
+    <a href="https://blueimp.github.io/JavaScript-MD5/" target="_blank">JavaScript MD5 演示</a>
+    <br>
+    <a href="https://the-x.cn/cryptography/Aes.aspx" target="_blank">AES加密/解密</a>
+
+    <h2>Test</h2>
+    <div>
+        <textarea name="" id="secretKey"  rows="2" placeholder="请输入秘钥"></textarea>
+        <textarea name="" id="cipherText"  rows="5" placeholder="请输入未加密的text文本"></textarea>
+    </div>
+    <button id="getDefaultDecrypt">使用默认数据测试解密</button>
+    <button id="getDecrypt">解密</button>
+</div>
 
 <script src="crypto-js.js"></script>
 <script src="main.js"></script>
