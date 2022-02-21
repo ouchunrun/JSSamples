@@ -7293,54 +7293,42 @@
         }
     ]
 
-    // // 总日志长度
-    // let totalLogLength = logs.length;
-    // // 每个数组的数据大小
-    // let eachLogLength = 100;
-    // // 开始的索引
-    // let startIndex = 0
-    // // 结束的索引
-    // let endIndex = Math.min(eachLogLength, totalLogLength)
-    //
-    // // 变量计数
-    // let index = 1
-    // function loop(){
-    //     console.log('startIndex, ', startIndex, 'endIndex, ', endIndex)
-    //     console.log('log index ******** , ', index)
-    //     window['log' + index] = logs.slice(startIndex, endIndex)
-    //
-    //     index++
-    //     startIndex = endIndex
-    //     endIndex = Math.min(totalLogLength, eachLogLength * index)
-    //     if(endIndex < totalLogLength){
-    //         loop()
-    //     }
-    //     // 最后一次没处理
-    // }
-
-
-
     let eleButton = document.querySelector('input[type="button"]');
 
-    // 总日志长度
-    let totalLogLength = logs.length;
-    // 每个数组的数据大小
-    let eachLogLength = 100;
-    // 开始的索引
-    let startIndex = 0
-    // 结束的索引
-    let endIndex = Math.min(eachLogLength, totalLogLength)
-    let index = 1
-    // 批量创建变量
     let variableDatas = {}
-    for(let i = 1; i <= logs.length; i=index*100) {
-        let name = 'log' + index
-        variableDatas[name] = null
-        index++
-    }
-    console.warn("variableDatas:", variableDatas)
+    function logSegmentation(){
+        // 总日志长度
+        let totalLogLength = logs.length;
+        // 每个数组的数据大小
+        let eachLogLength = 2000;
+        // 开始的索引
+        let startIndex = 0
+        // 结束的索引
+        let endIndex = Math.min(eachLogLength, totalLogLength)
 
-    let getLog = (startIndex, endIndex) => `${JSON.stringify(logs.slice(startIndex, endIndex))}`
+        // 变量计数
+        let index = 1
+        let finish = false
+        function loop(){
+            console.log('startIndex, ', startIndex, 'endIndex, ', endIndex)
+            console.log('log index ******** , ', index)
+            variableDatas['log' + index] = logs.slice(startIndex, endIndex)
+
+            index++
+            startIndex = endIndex
+            endIndex = Math.min(totalLogLength, eachLogLength * index)
+            if(endIndex <= totalLogLength && !finish){
+                if(endIndex === totalLogLength){
+                    finish = true
+                }
+                loop()
+            }
+            // 最后一次没处理
+        }
+        loop()
+    }
+    logSegmentation()
+    console.warn("variableDatas:", variableDatas)
 
 	// 下载文件方法
 	let funDownload = function (content, filename) {
@@ -7450,7 +7438,6 @@
 					let logDatas = ${JSON.stringify(variableDatas)}
 
 					${(function() {
-                        console.warn('1111111111')
                         Object.keys(variableDatas).forEach(function(key){
                             variableDatas[key] = `${getLog(0, 10)}`
                         })
