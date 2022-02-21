@@ -146,36 +146,39 @@
             }
         };
         
+        let logSegmentation = logs => \`
+        ${
+                                    `// 总日志长度
+                let totalLogLength = logs.length;
+                // 每个数组的数据大小
+                let eachLogLength = 10000;
+                //每条记录的索引
+                let index = 1
+                let startIndex = 0
+                let endIndex = 0
+                // 循环加载数据
+                function loop(curTotal, curIndex){
+                    if(curIndex >= curTotal){
+                    return false;
+                }
+                //每页多少条
+                startIndex = curIndex
+                endIndex = Math.min(curTotal, eachLogLength * index)
+                console.log(startIndex, ', ', endIndex)
+                window['log' + index] = JSON.stringify(logs.slice(startIndex, endIndex))
+                index ++
+                loop(totalLogLength, endIndex)
+                }
+                loop(totalLogLength, 0);
+            `}
+        \`
+        logSegmentation(logs)
     </script>
 </head>
 <body>
 <div id="log"></div>
 
 <script>
-    function logexport1(){
-        // 总日志长度
-        let totalLogLength = logs.length;
-        // 每个数组的数据大小
-        let eachLogLength = 10000;
-        //每条记录的索引
-        let index = 1
-        let startIndex = 0
-        let endIndex = 0
-        // 循环加载数据
-        function loop(curTotal, curIndex){
-            if(curIndex >= curTotal){
-                return false;
-            }
-            //每页多少条
-            startIndex = curIndex
-            endIndex = Math.min(curTotal, eachLogLength * index)
-            console.log(startIndex, ', ', endIndex)
-            window['log' + index] = JSON.stringify(logs.slice(startIndex, endIndex))
-            index ++
-            loop(totalLogLength, endIndex)
-        }
-        loop(totalLogLength, 0);
-    }
     
     let logFormatShow = document.getElementById('log')
     window.onload = function () {
