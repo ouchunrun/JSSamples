@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<link rel="shortcut icon" href="#">
+	<title>teams getInfo test</title>
+	<style>
+        button{
+            height: 30px;
+            width: auto;
+            border: none;
+            margin: 0 20px 20px 20px;
+            display: inline-block;
+        }
+        button:hover{
+            background: burlywood;
+        }
+        .fail{
+            background: #9e9e9e;
+            color: aliceblue;
+        }
+        div#container {
+            margin: 0 auto 0 auto;
+            max-width: 60em;
+            padding: 1em 1.5em 1.3em 1.5em;
+        }
+	</style>
+</head>
+<body>
+<div id="container">
+	<h1>Get self and contact information</h1>
+
+	<ul>
+		<li><button onclick="getSelfProfile()">get my profile（获取个人资料）</button></li>
+		<li><button onclick="getUsers()">get users（获取个人资料）</button></li>
+		<li><button onclick="getMyContacts()">get my contact（从已登录用户的默认联系人文件夹中获取联系人集合）</button></li>
+		<li><button onclick="listPeople()"> list people（根据通信和协作模式及业务关系获取与登录用户相关度最高的人员）</button></li>
+		<li><button class="fail" onclick="getChatMembers()">list members of a chat</button></li>
+	</ul>
+</div>
+<script src="src/axios.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
