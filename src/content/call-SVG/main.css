@@ -1,0 +1,93 @@
+body{
+    text-align: center;
+}
+#header{
+    width: 100%;
+    height: 200px;
+    line-height: 200px;
+    text-align: center;
+    background: #cddc39;
+    color: aliceblue;
+}
+.quicall-icon span{
+    display: inline-block;
+    background: blue;
+    width: 30px;
+    height: 30px;
+}
+/*****************************************拨号图标1************************************************************/
+/*效果：hover时svg填充指定颜色*/
+#grpLinearCallSVG path:nth-child(1){
+    stroke-width: 1;
+    stroke: rgb(43, 93, 166)
+}
+#grpLinearCallSVG:hover path:nth-child(1){
+    fill: currentColor;
+    /*-webkit-animation: callPath1 1s ease-in-out infinite;*/   /*通过js设置fill颜色*/
+}
+@-webkit-keyframes callPath1 {
+    0% {
+        color: #FFF;
+    }
+    100% {
+        color: #cddc39;
+    }
+}
+#grpLinearCallSVG:hover path:nth-child(2){
+    /*fill: #cddc39;*/
+    -webkit-animation: callPath2 1s ease-in-out infinite;
+}
+#grpLinearCallSVG:hover path:nth-child(3){
+    /*fill: #cddc39;*/
+    -webkit-animation: callPath3 1s ease-in-out infinite;
+}
+@-webkit-keyframes callPath2 {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+@-webkit-keyframes callPath3 {
+    0% {
+        opacity: 0;
+    }
+    30% {
+        opacity: 0;  /* 延时显示 */
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/*****************************************拨号图标2************************************************************/
+#grpFaceCallSVG path:nth-child(1){
+    fill: currentColor;
+    color: #cddc39;
+}
+#grpFaceCallSVG:hover path:nth-child(1){
+    stroke-width: 1;
+    /*-webkit-animation: call2Path1 1s ease-in-out infinite;*/
+}
+/*@keyframes 规则，将一套 CSS 样式逐渐变化为另一套样式。*/
+@-webkit-keyframes call2Path1 {
+    0% {
+        stroke-width: 1;
+        stroke: #cddc39
+    }
+    100% {
+        stroke-width: 1;
+        stroke: rgb(43, 93, 166)
+    }
+}
+#grpFaceCallSVG:hover path:nth-child(2){
+    opacity: 0;
+    fill: rgb(43, 93, 166);
+    -webkit-animation: callPath2 1s ease-in-out infinite;
+}
+#grpFaceCallSVG:hover path:nth-child(3){
+    opacity: 0;
+    fill: rgb(43, 93, 166);
+    -webkit-animation: callPath3 1s ease-in-out infinite;
+}

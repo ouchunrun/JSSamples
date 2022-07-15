@@ -6,113 +6,19 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="icon" href="data:image/ico;base64,aWNv">
     <title>Call SVG</title>
-    <style id="dt">
-        body{
-            text-align: center;
-        }
-        #header{
-            width: 100%;
-            height: 200px;
-            line-height: 200px;
-            text-align: center;
-            background: #cddc39;
-            color: aliceblue;
-        }
-        .quicall-icon span{
-            display: inline-block;
-            background: blue;
-            width: 30px;
-            height: 30px;
-        }
-        /*****************************************拨号图标1************************************************************/
-        /*效果：hover时svg填充指定颜色*/
-        #call path:nth-child(1){
-            stroke-width: 1;
-            stroke: rgb(43, 93, 166)
-        }
-        #call:hover path:nth-child(1){
-            fill: currentColor;
-            /*-webkit-animation: callPath1 1s ease-in-out infinite;*/   /*通过js设置fill颜色*/
-        }
-        @-webkit-keyframes callPath1 {
-            0% {
-                color: #FFF;
-            }
-            100% {
-                color: #cddc39;
-            }
-        }
-        #call:hover path:nth-child(2){
-            /*fill: #cddc39;*/
-            -webkit-animation: callPath2 1s ease-in-out infinite;
-        }
-        #call:hover path:nth-child(3){
-            /*fill: #cddc39;*/
-            -webkit-animation: callPath3 1s ease-in-out infinite;
-        }
-        @-webkit-keyframes callPath2 {
-            0% {
-                opacity: 0;
-            }
-            100% {
-                opacity: 1;
-            }
-        }
-        @-webkit-keyframes callPath3 {
-            0% {
-                opacity: 0;
-            }
-            30% {
-                opacity: 0;  /* 延时显示 */
-            }
-            100% {
-                opacity: 1;
-            }
-        }
-
-        /*****************************************拨号图标2************************************************************/
-        #call2 path:nth-child(1){
-            fill: currentColor;
-            color: #cddc39;
-        }
-        #call2:hover path:nth-child(1){
-            stroke-width: 1;
-            /*-webkit-animation: call2Path1 1s ease-in-out infinite;*/
-        }
-        /*@keyframes 规则，将一套 CSS 样式逐渐变化为另一套样式。*/
-        @-webkit-keyframes call2Path1 {
-            0% {
-                stroke-width: 1;
-                stroke: #cddc39
-            }
-            100% {
-                stroke-width: 1;
-                stroke: rgb(43, 93, 166)
-            }
-        }
-        #call2:hover path:nth-child(2){
-            opacity: 0;
-            fill: rgb(43, 93, 166);
-            -webkit-animation: callPath2 1s ease-in-out infinite;
-        }
-        #call2:hover path:nth-child(3){
-            opacity: 0;
-            fill: rgb(43, 93, 166);
-            -webkit-animation: callPath3 1s ease-in-out infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="main.css">
 </head>
 <body>
     <h1 id="header">拨号图标SVG动画效果</h1>
 
 <!--    <div class="quicall-icon">-->
-<!--        <span style="-webkit-mask:url('./assets/call1.svg') no-repeat; -webkit-mask-size: 90%; "></span>-->
-<!--        <span style="-webkit-mask:url('./assets/call2.svg') no-repeat; -webkit-mask-size: 90%; "></span>-->
+<!--        <span style="-webkit-mask:url('./assets/faceCall.svg') no-repeat; -webkit-mask-size: 90%; "></span>-->
+<!--        <span style="-webkit-mask:url('./assets/linearCall.svg') no-repeat; -webkit-mask-size: 90%; "></span>-->
 <!--    </div>-->
 
 
     <!--  SVG 1： 线性图标hover时填充颜色  -->
-    <svg id="call" width="32px" height="32px" viewBox="0 0 16 16">
+    <svg id="grpLinearCallSVG" width="32px" height="32px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <g stroke="none" stroke-width="1" fill="none"  fill-rule="evenodd">
             <g transform="translate(-541.000000, -952.000000)" fill-rule="nonzero">
                 <g transform="translate(541.000000, 952.000000)">
@@ -129,7 +35,7 @@
     <div style="height: 100px"></div>
 
     <!--  SVG 2： 面性图标hover时设置不同颜色的stroke边框  -->
-    <svg id="call2" width="32px" height="32px" viewBox="0 0 16 16">
+    <svg id="grpFaceCallSVG" width="32px" height="32px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg">
         <g stroke="none" stroke-width="1" fill="none"  fill-rule="evenodd">
             <g transform="translate(-541.000000, -952.000000)" fill-rule="nonzero">
                 <g transform="translate(541.000000, 952.000000)">

@@ -6,7 +6,7 @@ function randomColor(){
     return "#" + Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, "0");
 }
 
-let callSvg = document.getElementById('call')
+let callSvg = document.getElementById('grpLinearCallSVG')
 // 添加鼠标进入事件监听
 callSvg.onmouseover = function (e){
     e.stopPropagation()
@@ -56,7 +56,7 @@ callSvg.onmouseout = function (e){
     }
 }
 
-let call2Svg = document.getElementById('call2')
+let call2Svg = document.getElementById('grpFaceCallSVG')
 // 添加鼠标进入事件监听
 call2Svg.onmouseover = function (e){
     e.stopPropagation()
