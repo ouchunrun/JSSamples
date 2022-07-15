@@ -18,7 +18,17 @@ callSvg.onmouseover = function (e){
     }
     if(childNodes.length){
         let color1 = randomColor()
-        childNodes[0].style.stroke = color1
+        // childNodes[0].style.stroke = color1
+        childNodes[0].animate(
+            [
+                { color: '#FFF' }, // 0%
+                { color: color1 } // 100%
+            ], {
+                duration: 1000,
+                easing: "ease-in-out",
+                iterations: Infinity,
+            }
+        )
         childNodes[1].style.fill = color1
         childNodes[2].style.fill = color1
     }
@@ -34,9 +44,15 @@ callSvg.onmouseout = function (e){
         childNodes = e.currentTarget.getElementsByTagName('path')
     }
     if(childNodes.length){
-        childNodes[0].style.stroke = 'rgb(43, 93, 166)'
+        // childNodes[0].style.stroke = 'rgb(43, 93, 166)'
         childNodes[1].style.fill = ''
         childNodes[2].style.fill = ''
+        childNodes[0].getAnimations().forEach(
+            function(animation){
+                console.log('finish animation.')
+                return animation.cancel();
+            }
+        );
     }
 }
 
@@ -52,7 +68,21 @@ call2Svg.onmouseover = function (e){
     }
     if(childNodes.length){
         let color1 = randomColor()
-        childNodes[0].style.fill = color1
+        // childNodes[0].style.fill = color1
+        childNodes[0].animate(
+            [
+                {
+                    stroke: '#cddc39',
+                },
+                {
+                    stroke: color1,
+                }
+            ], {
+                duration: 1000,
+                easing: "ease-in-out",
+                iterations: Infinity,
+            }
+        )
         childNodes[1].style.fill = color1
         childNodes[2].style.fill = color1
     }
@@ -70,5 +100,11 @@ call2Svg.onmouseout = function (e){
         childNodes[0].style.fill = '#cddc39'
         childNodes[1].style.fill = ''
         childNodes[2].style.fill = ''
+        childNodes[0].getAnimations().forEach(
+            function(animation){
+                console.log('finish animation.')
+                return animation.cancel();
+            }
+        );
     }
 }
