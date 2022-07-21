@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Hello world</title>
+</head>
+<body>
+<div id="canvasContainer" style="display:none">
+    <canvas id="canvas"></canvas>
+</div>
+<div>
+    <video id="source" autoplay loop controls src="./190319212559089721.mp4"
+           width="300" height="227">
+    </video>
+</div>
+
+<script>
+    window.onload = function (){
+        const canvas = document.getElementById('canvas')
+        const ctx = canvas.getContext('2d')
+        const video = document.getElementById('source')
+
+        setInterval(() => {
+            ctx.drawImage(video, 0, 0, 300, 227);
+        }, 200)
+
+        console.warn(`We are using Node.js: ${process.versions.node}`)
+        console.warn(`Chromium ${process.versions.chrome}`)
+        console.warn(`and Electron ${process.versions.electron}`)
+    }
+</script>
+
+
+</body>
+</html>
