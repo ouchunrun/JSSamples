@@ -9,10 +9,15 @@ function createRecorder (data) {
         monitorGain: data.monitorGain || 0,
         recordingGain: data.recordingGain || 1,
         numberOfChannels: data.numberOfChannels || 1,
-        encoderSampleRate: data.encoderSampleRate || 16000,
-        originalSampleRateOverride: data.encoderSampleRate || 16000,
+        //  to ogg config
+        encoderSampleRate: data.desiredSampleRate || 16000,
+        originalSampleRateOverride: data.desiredSampleRate || 16000,
+        // to wav config
+        wavSampleRate: data.desiredSampleRate || 8000,
+
         recordingDuration: data.duration || 30000,
-        encoderPath: data.encoderWorkerPath || 'encoderWorker.js'
+        encoderPath: data.encoderWorkerPath,
+        desiredFormat: data.desiredFormat,       // 期望转换后的格式
     }
     mediaRecorder = new Recorder(options, data)
 
@@ -34,9 +39,15 @@ function createRecorder (data) {
 
     mediaRecorder.ondataavailable = function (blob) {
         console.log('Data ondataavailable received')
-        mediaRecorder.recoderOptions.doneCallBack(new File([blob], `${mediaRecorder.fileName}.ogg`, {
-            type: 'audio/ogg;codecs=opus'
-        }), blob)
+        let fileType = (mediaRecorder.recoderOptions.desiredFormat === 'ogg') ? 'audio/ogg;codecs=opus' : 'audio/wav;codecs=pcmu'
+        mediaRecorder.recoderOptions.doneCallBack(
+            new File(
+            [blob],
+            `${mediaRecorder.fileName}.${mediaRecorder.recoderOptions.desiredFormat}`,
+            {type: fileType}
+            ),
+            blob
+        )
     }
 
     return mediaRecorder

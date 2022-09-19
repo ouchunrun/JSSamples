@@ -1,4 +1,4 @@
-
+let desiredFormatSelect = document.getElementById('desiredFormat')
 let player = document.querySelector('#player');
 let recorderLists = document.querySelector('#recorderLists');
 let uploadFile = document.getElementById('uploadFile')
@@ -30,14 +30,17 @@ uploadFile.onchange = function () {
 
     let duration = recordingDurationInput.value || 30
     logPrint('Recorder duration has been set to ' + duration)
+
+    let desiredFormat = desiredFormatSelect.options[desiredFormatSelect.selectedIndex].value
     encoderOgg({
         file: this.files[0],
         duration: duration,   // 文件录制时长
+        desiredFormat: desiredFormat,
         monitorGain: 0,
         recordingGain: 1,
         numberOfChannels: 1,
-        encoderSampleRate: 16000,
-        encoderWorkerPath: './to-ogg-worker/encoderWorker.js',
+        desiredSampleRate: (desiredFormat === 'ogg') ? 16000 : 48000,    // Desired encoding sample rate. Audio will be resampled
+        encoderWorkerPath: (desiredFormat === 'ogg') ? './to-ogg-worker/encoderWorker.js' : './to-ogg-worker/waveWorker.js',
 
         /**
          * 进度处理
@@ -58,7 +61,19 @@ uploadFile.onchange = function () {
          * @param blob
          */
         doneCallBack:function (file, blob){
-            let dataBlob = new Blob([blob], {type: 'audio/ogg'});
+            logPrint('Desired encoding format ' + desiredFormat)
+            let blobType  // audio/ogg 或 audio/wav
+            if(file.type && file.type.split){
+                let lines = file.type.split(';')
+                for(let i = 0; i<lines.length; i++){
+                    if(lines[i].startsWith('audio/')){
+                        blobType = lines[i]
+                        console.warn('get blobType: '+ blobType)
+                        break
+                    }
+                }
+            }
+            let dataBlob = new Blob([blob], {type: blobType});
             let downLoadLink = document.createElement('a')
             let url = URL.createObjectURL(dataBlob);
             player.src = url;

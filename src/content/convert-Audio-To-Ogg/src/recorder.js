@@ -13,23 +13,32 @@ let Recorder = function (config, data) {
   }
 
   this.state = 'inactive'
+  // Wave 格式音频转换：8KHz 采样率， 16bits 位深， 单声道，编码器G.711U
+  // TODO: 编码器使用G.711U ?
   this.config = Object.assign({
-    bufferLength: 4096,
-    encoderApplication: 2049,
-    encoderFrameSize: 20,
-    encoderPath: 'encoderWorker.js',
-    encoderSampleRate: 16000,
-    maxFramesPerPage: 40,
-    mediaTrackConstraints: true,
-    monitorGain: 0,
-    numberOfChannels: 1,
-    recordingGain: 1,
-    resampleQuality: 9,
-    streamPages: false,
+    // 通用配置
+    bufferLength: 4096,                 // scriptProcessorNode 用于捕获音频的缓冲区的长度。默认为4096.
+    encoderPath: 'encoderWorker.js',       // worker 脚本路径
+    mediaTrackConstraints: true,        // 指定媒体轨道约束的对象。默认为true.
+    monitorGain: 0,                     // 设置监控输出的增益。增益是一个介于 0 和 1 之间的加权值。默认为 0
+    numberOfChannels: 1,                // 要记录的通道数。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
+    recordingGain: 1,                   // 设置录音输入的增益。增益是一个介于 0 和 1 之间的加权值。默认为 1
     reuseWorker: false,
-    wavBitDepth: 16
+
+    // 编码器的配置选项
+    encoderApplication: 2049,
+    encoderFrameSize: 20,                // 以毫秒为单位指定用于编码的帧大小。默认为 20
+    encoderSampleRate: 16000,            // 所需的编码的采样率。默认为48000. 支持的值为8000、12000、16000、24000、48000
+    wavSampleRate: 8000,                 // 转换为wav格式时需要的参数
+    maxFramesPerPage: 40,                // 在生成页面之前要收集的最大帧数。这可用于降低流式传输延迟。值越低，流产生的开销就越大。默认为 40。
+    resampleQuality: 9,                  // 用于确定延迟和重采样处理。0速度最快，质量最低。10速度最慢，质量最高。默认为3
+
+    // 录音机的配置选项
+    streamPages: false,                  // dataAvailable 事件将在每个编码页面后触发。默认为false。 WAV recorder的配置选项
+    wavBitDepth: 16,                     // WAV 文件的所需位深度。默认为16. 支持的值为8, 16, 24 and 32 bits
   }, config)
 
+  console.warn('this.config:', JSON.stringify(this.config, null, '    '))
   this.encodedSamplePosition = 0
   this.recoderOptions = data
   this.stream = null
@@ -174,9 +183,9 @@ Recorder.prototype.initAudioGraph = function () {
 
     audioprocessTotalDuration = audioprocessCount * audioprocessDuration
     let timeLeft = This.recordingDuration - audioprocessTotalDuration
-    console.log('time left:', timeLeft)
-    console.log('process count: ', audioprocessCount)
-    console.log('audio process total duration: ', audioprocessTotalDuration)
+    // console.log('time left:', timeLeft)
+    // console.log('process count: ', audioprocessCount)
+    // console.log('audio process total duration: ', audioprocessTotalDuration)
     if (timeLeft > 0) {
       if(This.recorderStopHandler){
         This.recorderStopHandler({ state: 'running', totalDuration: audioprocessTotalDuration })
