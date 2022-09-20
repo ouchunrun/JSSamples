@@ -18,13 +18,12 @@ const WavePCM = function (config) {
     this.numberOfChannels = config['numberOfChannels'];
     this.bitDepth = config['wavBitDepth'];
     this.sampleRate = config['wavSampleRate'];
+    this.originalSampleRate = config['originalSampleRate']
     this.recordedBuffers = [];
     this.bytesPerSample = this.bitDepth / 8;
-
-    // chrou add
-    this.originalSampleRateOverride = config['originalSampleRateOverride']
-    this.originalSampleRate = config['originalSampleRate']
     console.warn('WavePCM config:', JSON.stringify(config, null, '    '))
+
+
 };
 
 WavePCM.prototype.record = function (buffers) {
@@ -76,6 +75,22 @@ WavePCM.prototype.record = function (buffers) {
     this.recordedBuffers.push(reducedData);
 };
 
+/**
+ * Write a string to a DataView.
+ * @param {DataView} dataView - dataView object to write a string.
+ * @param {*} offset - offset in bytes
+ * @param {*} string - string to write
+ */
+WavePCM.prototype.writeString = function (dataView, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        dataView.setUint8(offset + i, string.charCodeAt(i));
+    }
+}
+
+/**
+ * Wave 头 与 偏移量说明：https://www.zhuyuntao.cn/js%E5%AE%9E%E7%8E%B0pcm%E9%9F%B3%E9%A2%91%E8%BD%ACwav%E4%B8%8E%E6%92%AD%E6%94%BE
+ * @returns {{page: Uint8Array, message: string}}
+ */
 WavePCM.prototype.requestData = function () {
     var bufferLength = this.recordedBuffers[0].length;
     var dataLength = this.recordedBuffers.length * bufferLength;
@@ -83,19 +98,41 @@ WavePCM.prototype.requestData = function () {
     var wav = new Uint8Array(headerLength + dataLength);
     var view = new DataView(wav.buffer);
 
-    view.setUint32(0, 1380533830, false); // RIFF identifier 'RIFF'
+    /*RIFF identifier 'RIFF'*/
+    this.writeString(view, 0, 'RIFF');
+    // view.setUint32(0, 1380533830, false); // RIFF identifier 'RIFF'
+
+    /* RIFF chunk length */
     view.setUint32(4, 36 + dataLength, true); // file length minus RIFF identifier length and file description length
-    view.setUint32(8, 1463899717, false); // RIFF type 'WAVE'
-    view.setUint32(12, 1718449184, false); // format chunk identifier 'fmt '
-    view.setUint32(16, 16, true); // format chunk length
-    view.setUint16(20, 1, true); // sample format (raw)
-    view.setUint16(22, this.numberOfChannels, true); // channel count
-    view.setUint32(24, this.sampleRate, true); // sample rate
-    view.setUint32(28, this.sampleRate * this.bytesPerSample * this.numberOfChannels, true); // byte rate (sample rate * block align)
-    view.setUint16(32, this.bytesPerSample * this.numberOfChannels, true); // block align (channel count * bytes per sample)
-    view.setUint16(34, this.bitDepth, true); // bits per sample
-    view.setUint32(36, 1684108385, false); // data chunk identifier 'data'
-    view.setUint32(40, dataLength, true); // data chunk length
+
+    /*RIFF type 'WAVE'*/
+    this.writeString(view, 8, 'WAVE');
+    // view.setUint32(8, 1463899717, false);
+
+     /* format chunk identifier 'fmt '*/
+    this.writeString(view, 12, 'fmt ');
+    // view.setUint32(12, 1718449184, false); // format chunk identifier 'fmt '
+
+    /*format chunk length*/
+    view.setUint32(16, 16, true);
+    /*sample format (raw)*/
+    view.setUint16(20, 1, true);
+    /*channel count*/
+    view.setUint16(22, this.numberOfChannels, true);
+    /*sample rate*/
+    view.setUint32(24, this.sampleRate, true);
+    /* byte rate (sample rate * block align) 波特率=采样频率 × (采样位数 / 8) × 声道数 */
+    view.setUint32(28, this.sampleRate * this.bytesPerSample * this.numberOfChannels, true);
+    /* block align (channel count * bytes per sample) */
+    view.setUint16(32, this.bytesPerSample * this.numberOfChannels, true);
+    /* bits per sample */
+    view.setUint16(34, this.bitDepth, true);
+
+    /*data chunk identifier 'data'*/
+    this.writeString(view, 36, 'data');
+    // view.setUint32(36, 1684108385, false); // data chunk identifier 'data'
+    /*data chunk length*/
+    view.setUint32(40, dataLength, true);
 
     for (var i = 0; i < this.recordedBuffers.length; i++) {
         wav.set(this.recordedBuffers[i], i * bufferLength + headerLength);
@@ -103,7 +140,6 @@ WavePCM.prototype.requestData = function () {
 
     return {message: 'page', page: wav};
 };
-
 
 // Run in AudioWorkletGlobal scope
 if (typeof registerProcessor === 'function') {

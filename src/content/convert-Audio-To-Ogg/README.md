@@ -1,5 +1,7 @@
 ## 说明
 
+Demo 源码来源：https://github.com/chris-rudmin/opus-recorder
+
 ### 浏览器兼容
 
 | 浏览器类型         | 版本  | 浏览器内核  | 是否支持 | 备注         |

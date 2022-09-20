@@ -39,7 +39,7 @@ uploadFile.onchange = function () {
         monitorGain: 0,
         recordingGain: 1,
         numberOfChannels: 1,
-        desiredSampleRate: (desiredFormat === 'ogg') ? 16000 : 48000,    // Desired encoding sample rate. Audio will be resampled
+        desiredSampleRate: (desiredFormat === 'ogg') ? 16000 : 8000,    // Desired encoding sample rate. Audio will be resampled
         encoderWorkerPath: (desiredFormat === 'ogg') ? './to-ogg-worker/encoderWorker.js' : './to-ogg-worker/waveWorker.js',
 
         /**
