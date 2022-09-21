@@ -1,189 +1,160 @@
 //webkitURL is deprecated but nevertheless
 URL = window.URL || window.webkitURL;
 
-var gumStream; 						//stream from getUserMedia()
-var rec; 							//Recorder.js object
-var input; 							//MediaStreamAudioSourceNode we'll be recording
+let gumStream; 						//stream from getUserMedia()
+let waveRecorder; 							//Recorder.js object
 
-// shim for AudioContext when it's not avb. 
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var audioContext //audio context to help us record
+// shim for AudioContext when it's not avb.
+let AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioContext //audio context to help us record
+let recordButton = document.getElementById("recordButton");
+let stopButton = document.getElementById("stopButton");
 
-var recordButton = document.getElementById("recordButton");
-var stopButton = document.getElementById("stopButton");
-// var pauseButton = document.getElementById("pauseButton");
-var transTxtBox = document.getElementById("transTxtBox");
-// var ws = new WebSocket("wss://vosk-cn.dev.youbanban.com");
-var recRate = $("#recRate").val();
-console.log("默认hz:", recRate);
-
-$("#recRate").change(function(){
-  recRate = $("#recRate").val()
-  console.log("修改后hz:", recRate);
-})
-
+// 期望的采样率选择
+let sampleRateSelect = document.getElementById('recRate')
+let desiredSampleRate = sampleRateSelect.options[sampleRateSelect.selectedIndex].value
+console.log("默认采样率:", desiredSampleRate);
+sampleRateSelect.onchange = function (){
+    desiredSampleRate = sampleRateSelect.options[sampleRateSelect.selectedIndex].value
+    console.log("修改后采样率:", desiredSampleRate);
+}
 
 //add events to those 2 buttons
 recordButton.addEventListener("click", startRecording);
 stopButton.addEventListener("click", stopRecording);
-// pauseButton.addEventListener("click", pauseRecording);
 
-function startRecording() {
-  console.log("recordButton clicked");
-  // wsCn = new WebSocket("wss://vosk-cn.dev.youbanban.com");
-  // wsEn = new WebSocket("wss://vosk-en.dev.youbanban.com");
+let uploadFile = document.getElementById('uploadFile')
+let clickToUpload = document.getElementById('clickToUpload')
+clickToUpload.onclick = function (){
+    console.log('Trigger the real file upload button')
+    uploadFile.click()
+}
 
-	/*
-		Simple constraints object, for more advanced audio features see
-		https://addpipe.com/blog/audio-constraints-getusermedia/
-	*/
-    
-    var constraints = { audio: true, video:false }
-
- 	/*
-    	Disable the record button until we get a success or fail from getUserMedia() 
-	*/
-
-	/*
-    	We're using the standard promise based getUserMedia() 
-    	https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-  */
-
-
-	navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
-		console.log("getUserMedia() success, stream created, initializing Recorder.js ...");
+/**
+ * 文件上传处理
+ */
+uploadFile.onchange = function () {
     $("#recordButton").removeClass("stop");
     $("#stopButton").addClass("recoding");
     $(".errorTips").removeClass("errorShow");
     $(".refresh").removeClass("refreshShow");
 
-    audioContext = new AudioContext();
-    
-		/*  assign to gumStream for later use  */
-		gumStream = stream;
-		
-		/* use the stream */
-    input = audioContext.createMediaStreamSource(stream);
+    let file = this.files[0]
+    let fileReader = new FileReader()
+    let audioCtx = new AudioContext()
+    fileReader.onload = function () {
+        audioCtx.decodeAudioData(this.result).then(function (decodedData) {
+            console.log('upload file duration: ' + decodedData.duration + '(s)')
 
-		/* 
-			Create the Recorder object and configure to record mono sound (1 channel)
-			Recording 2 channels  will double the file size
-		*/
-		rec = new Recorder(input,{numChannels:1})
+            // 创建一个新的AudioBufferSourceNode接口, 该接口可以通过AudioBuffer 对象来播放音频数据
+            let bufferSource = audioCtx.createBufferSource()
+            bufferSource.buffer = decodedData
+            bufferSource.onended = function (){
+                if (waveRecorder.state === 'recording' || waveRecorder.state !== 'inactive') {
+                    console.log('buffer source onEnded!')
+                    waveRecorder.stop()
+                    bufferSource && bufferSource.stop()
+                    bufferSource = null
 
-		//start the recording process
-    rec.record()
+                    //create the wav blob and pass it on to createDownloadLink
+                    console.log('创建下载链接')
+                    waveRecorder.exportWAV(createDownloadLink, "audio/wav", Number(desiredSampleRate));
+                }
+            }
 
-		console.log("Recording started", rec);
+            // 创建一个媒体流的节点
+            let destination = audioCtx.createMediaStreamDestination()
+            // recordingDuration = Math.min(data.duration, decodedData.duration) // 文件总时长小于指定的录制时长时，以文件时长为主
+            // 更新录制时长
+            // recorder.setRecordingDuration(recordingDuration)
+            bufferSource.connect(destination)
+            bufferSource.start()
 
-	}).catch(function(err) {
-	  	//enable the record button if getUserMedia() fails
-      $("#recordButton").addClass("stop");
-      $("#stopButton").removeClass("recoding");
-	});
+            // 创建一个新的MediaStreamAudioSourceNode 对象，将声音输入这个对像
+            let mediaStreamSource = audioCtx.createMediaStreamSource(destination.stream)
+            waveRecorder = new Recorder(mediaStreamSource, {numChannels: 1})
+            console.warn('wave Recorder:', waveRecorder)
+            //start the recording process
+
+            waveRecorder.record()  // 设置recording为true
+
+            console.log('wave Recorder.record:', waveRecorder.record)
+            console.log("Recording started", waveRecorder);
+        }, function (error) {
+            console.warn('Error catch: ', error)
+        })
+    }
+    fileReader.readAsArrayBuffer(file)
 }
 
-function pauseRecording(){
-	console.log("pauseButton clicked rec.recording=",rec.recording );
-	if (rec.recording){
-		//pause
-		rec.stop();
-		pauseButton.innerHTML="Resume";
-	}else{
-		//resume
-		rec.record()
-		pauseButton.innerHTML="Pause";
+/**
+ * 实时取流录制
+ */
+function startRecording() {
+    console.log("recordButton clicked");
+    let constraints = {audio: true, video: false}
 
-	}
+    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+        console.log("getUserMedia() success, stream created, initializing Recorder.js ...");
+        $("#recordButton").removeClass("stop");
+        $("#stopButton").addClass("recoding");
+        $(".errorTips").removeClass("errorShow");
+        $(".refresh").removeClass("refreshShow");
+
+        audioContext = new AudioContext();
+        /*  assign to gumStream for later use  */
+        gumStream = stream;
+        /* use the stream */
+        let mediaStreamSource = audioContext.createMediaStreamSource(stream);
+        //  Create the Recorder object and configure to record mono sound (1 channel)
+        //  Recording 2 channels  will double the file size
+        waveRecorder = new Recorder(mediaStreamSource, {numChannels: 1})
+        console.warn('wave Recorder:', waveRecorder)
+        //start the recording process
+
+        waveRecorder.record()  // 设置recording为true
+
+        console.log('wave Recorder.record:', waveRecorder.record)
+        console.log("Recording started", waveRecorder);
+    }).catch(function (err) {
+        //enable the record button if getUserMedia() fails
+        $("#recordButton").addClass("stop");
+        $("#stopButton").removeClass("recoding");
+    });
 }
 
 function stopRecording() {
-	console.log("stopButton clicked");
+    console.log("stopButton clicked");
 
-  $("#recordButton").addClass("stop");
-  $("#stopButton").removeClass("recoding");
+    $("#recordButton").addClass("stop");
+    $("#stopButton").removeClass("recoding");
 
-  //tell the recorder to stop the recording
-	rec.stop();
+    //tell the recorder to stop the recording
+    waveRecorder.stop();   // 设置recording为false
 
-	//stop microphone access
-	gumStream.getAudioTracks()[0].stop();
-
-  //create the wav blob and pass it on to createDownloadLink
-  rec.exportWAV(createDownloadLink,"audio/wav",Number(recRate));
-}
-
-var blobPublic;
-
-function createDownloadLink(blob) {
-
-  blobPublic = blob;
-
-  // 发送请求-语音转文字
-  voskToText (blob);
-
-  // var url = URL.createObjectURL(blob);
-	// var au = document.createElement('audio');
-	// var li = document.createElement('li');
-	// var link = document.createElement('a');
-
-	// //name of .wav file to use during upload and download (without extendion)
-	// var filename = new Date().toISOString();
-
-	// //add controls to the <audio> element
-	// au.controls = true;
-	// au.src = url;
-
-	// //save to disk link
-	// link.href = url;
-	// link.download = filename+".wav"; //download forces the browser to donwload the file using the  filename
-	// link.innerHTML = "Save to disk";
-
-	// //add the new audio element to li
-	// li.appendChild(au);
-	
-	// //add the filename to the li
-	// li.appendChild(document.createTextNode(filename+".wav "))
-
-	// //add the save to disk link to li
-  // li.appendChild(link);
-  // recordingsList.appendChild(li);
-  
-
-}
-
-function voskToText (blob) {
-  var form = new FormData();
-  form.append('file',blob);
-  $(".errorTips").addClass("errorShow loading");
-  $.ajax({
-    type: "post",
-    url: "https://vosk-cn.dev.youbanban.com/asr",
-    data: form,
-    processData: false,
-    contentType: false,
-    cache: false,
-    success:function(res){
-      $(".refresh").removeClass("loading");
-      $(".refresh").removeClass("on");
-      if(res.status == 0) {
-        $("#recordTxt").val(res.text);
-        $(".refresh").removeClass("refreshShow");
-        $(".errorTips").removeClass("errorShow");
-      } else {
-        $("#recordTxt").val("");
-        $(".errorTips").addClass("errorShow");
-        $(".errorTips").html(res.text);
-        $(".refresh").addClass("refreshShow");
-      }
+    if(gumStream){
+        //stop microphone access
+        gumStream.getAudioTracks()[0].stop();
     }
-  })
+
+    //create the wav blob and pass it on to createDownloadLink
+    console.log('创建下载链接')
+    waveRecorder.exportWAV(createDownloadLink, "audio/wav", Number(desiredSampleRate));
 }
 
-$(".refresh").click(function() {
-  $(".errorTips").removeClass("errorShow");
-  $(this).addClass("on");
-  setTimeout(() =>{
-    voskToText(blobPublic);
-  }, 1000);
-})
+
+/**
+ * 创建下载链接
+ * @param blob
+ */
+function createDownloadLink(blob) {
+    console.log('createDownloadLink:', blob)
+    let downLoadLink = document.createElement('a')
+    let url = URL.createObjectURL(blob);
+    let player = document.getElementById('player')
+    player.src = url;
+    // 生成下载链接
+    downLoadLink.href = url;
+    downLoadLink.download = new Date().toLocaleString() + '.wav'
+    downLoadLink.innerHTML = '<br>' + '[' + new Date().toLocaleString() + '] ' + '.wav'
+}
