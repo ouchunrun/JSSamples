@@ -72,13 +72,14 @@ uploadFile.onchange = function () {
 
             // 创建一个新的MediaStreamAudioSourceNode 对象，将声音输入这个对像
             let mediaStreamSource = audioCtx.createMediaStreamSource(destination.stream)
-            waveRecorder = new Recorder(mediaStreamSource, {numChannels: 1})
-            console.warn('wave Recorder:', waveRecorder)
+            waveRecorder = new Recorder(mediaStreamSource, {
+                originalSampleRate: mediaStreamSource.context.sampleRate,
+                desiredSampleRate: Number(desiredSampleRate),
+                numChannels: 1,
+                mimeType: 'audio/wav'
+            })
             //start the recording process
-
             waveRecorder.record()  // 设置recording为true
-
-            console.log('wave Recorder.record:', waveRecorder.record)
             console.log("Recording started", waveRecorder);
         }, function (error) {
             console.warn('Error catch: ', error)
@@ -108,7 +109,12 @@ function startRecording() {
         let mediaStreamSource = audioContext.createMediaStreamSource(stream);
         //  Create the Recorder object and configure to record mono sound (1 channel)
         //  Recording 2 channels  will double the file size
-        waveRecorder = new Recorder(mediaStreamSource, {numChannels: 1})
+        waveRecorder = new Recorder(mediaStreamSource, {
+            originalSampleRate: mediaStreamSource.context.sampleRate,
+            desiredSampleRate: Number(desiredSampleRate),
+            numChannels: 1,
+            mimeType: 'audio/wav'
+        })
         console.warn('wave Recorder:', waveRecorder)
         //start the recording process
 
@@ -139,7 +145,7 @@ function stopRecording() {
 
     //create the wav blob and pass it on to createDownloadLink
     console.log('创建下载链接')
-    waveRecorder.exportWAV(createDownloadLink, "audio/wav", Number(desiredSampleRate));
+    waveRecorder.exportWAV(createDownloadLink);
 }
 
 

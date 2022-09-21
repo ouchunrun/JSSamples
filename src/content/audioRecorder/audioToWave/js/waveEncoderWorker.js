@@ -1,207 +1,247 @@
 
-let recLength = 0
-let recBuffers = []
-let sampleRate = undefined
-let numChannels = undefined
-
+let waveWorker
 self.onmessage = function (e) {
     switch (e.data.command) {
         case 'init':
-            init(e.data.config);
+            waveWorker.init(e.data.config)
             break;
         case 'record':
-            record(e.data.buffer);
+            waveWorker.record(e.data.buffer)
             break;
         case 'exportWAV':
-            exportWAV(e.data.type, e.data.rate);
+            waveWorker.exportWAV()
             break;
         case 'getBuffer':
-            getBuffer();
+            waveWorker.getBuffer()
             break;
         case 'clear':
-            clear();
-            break;
+            waveWorker.clear()
+            break
+        default:
+            break
     }
 }
 
-function init(config) {
-    sampleRate = config.sampleRate;
-    numChannels = config.numChannels;
-    initBuffers();
+function WaveWorker(){
+    this.mimeType = null
+    this.recorderBufferLength = 0
+    this.recorderBuffers = []
+    this.originalSampleRate = undefined
+    this.desiredSampleRate = undefined       // 目标采样率
+    this.numberOfChannels = undefined      // 采样通道。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
 }
 
-function record(inputBuffer) {
-    for (var channel = 0; channel < numChannels; channel++) {
-        recBuffers[channel].push(inputBuffer[channel]);
-    }
-    recLength += inputBuffer[0].length;
-}
+WaveWorker.prototype.init = function (config){
+    console.info('init config:', JSON.stringify(config, null, '    '))
+    this.originalSampleRate = config.originalSampleRate
+    this.desiredSampleRate = config.desiredSampleRate || 8000
+    this.numberOfChannels = config.numberOfChannels || 1
+    this.mimeType = config.mimeType || 'audio/wav'
 
-/**
- * 下采样缓冲区
- * @param buffer
- * @param rate
- * @returns {Float32Array|*}
- */
-function downsampleBuffer(buffer, rate) {
-    if (rate === sampleRate) {
-        return buffer;
-    }
-    if (rate > sampleRate) {
-        throw "downsampling rate show be smaller than original sample rate";
-    }
-    var sampleRateRatio = sampleRate / rate;
-    var newLength = Math.round(buffer.length / sampleRateRatio);
-    var result = new Float32Array(newLength);
-    var offsetResult = 0;
-    var offsetBuffer = 0;
-    while (offsetResult < result.length) {
-        var nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio);
-        var accum = 0, count = 0;
-        for (var i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
-            accum += buffer[i];
-            count++;
-        }
-        result[offsetResult] = accum / count;
-        offsetResult++;
-        offsetBuffer = nextOffsetBuffer;
-    }
-
-    return result;
+    this.initBuffers()
 }
 
 /**
- * 导出时的处理
- * @param type
- * @param rate
+ * 初始化recorder buffer 数据
  */
-function exportWAV(type, rate) {
-    var buffers = [];
-    for (var channel = 0; channel < numChannels; channel++) {
-        // TODO: recBuffers: onaudioprocess 触发时返回的recorder buffer数据
-        // TODO: recLength: onaudioprocess 触发时返回的recorder buffer数据的length总数
-        buffers.push(mergeBuffers(recBuffers[channel], recLength));
+WaveWorker.prototype.initBuffers = function (){
+    for (let channel = 0; channel < this.numberOfChannels; channel++) {
+        this.recorderBuffers[channel] = []
     }
-    var interleaved = undefined;
-    var downsampledBuffer
-    if (numChannels === 2) {
-        interleaved = interleave(buffers[0], buffers[1]);
-        downsampledBuffer = downsampleBuffer(interleaved, rate);
-    } else {
-        interleaved = buffers[0];
-        downsampledBuffer = downsampleBuffer(interleaved, rate);
-    }
-
-    console.warn('获取的下采样buffer数据:', downsampledBuffer)
-    var dataview = encodeWAV(rate, downsampledBuffer);
-
-
-    console.warn('dataview:', dataview)
-    var audioBlob = new Blob([dataview], {type: type});
-    console.warn('audioBlob:', audioBlob)
-    self.postMessage({command: 'exportWAV', data: audioBlob});
 }
 
-function getBuffer() {
-    var buffers = [];
-    for (var channel = 0; channel < numChannels; channel++) {
-        buffers.push(mergeBuffers(recBuffers[channel], recLength));
+/**
+ * 停止录制时清除录制数据
+ */
+WaveWorker.prototype.clear = function (){
+    this.recorderBufferLength = 0
+    this.recorderBuffers = []
+    this.initBuffers()
+}
+
+/**
+ * 处理onaudioprocess返回的buffer数据
+ * @param inputBuffer
+ */
+WaveWorker.prototype.record = function (inputBuffer){
+    for (let channel = 0; channel < this.numberOfChannels; channel++) {
+        this.recorderBuffers[channel].push(inputBuffer[channel])
     }
+    this.recorderBufferLength += inputBuffer[0].length
+}
+
+WaveWorker.prototype.getBuffer = function (){
+    let This = this
+    let buffers = []
+    for (let channel = 0; channel < This.numberOfChannels; channel++) {
+        buffers.push(This.mergeBuffers(This.recorderBuffers[channel], This.recorderBufferLength))
+    }
+
     self.postMessage({
         command: 'getBuffer',
         data: buffers
-    });
+    })
 }
 
-function clear() {
-    recLength = 0;
-    recBuffers = [];
-    initBuffers();
-}
-
-function initBuffers() {
-    for (var channel = 0; channel < numChannels; channel++) {
-        recBuffers[channel] = [];
+/**
+ * mergeBuffers将recBuffers数组扁平化
+ * @param buffers
+ * @param bufferLength
+ * @returns {Float32Array}
+ */
+WaveWorker.prototype.mergeBuffers = function (buffers, bufferLength){
+    let result = new Float32Array(bufferLength)
+    let offset = 0
+    for (let i = 0; i < buffers.length; i++) {
+        result.set(buffers[i], offset)
+        offset += buffers[i].length
     }
+    return result
 }
 
-function mergeBuffers(recBuffers, recLength) {
-    var result = new Float32Array(recLength);
-    var offset = 0;
-    for (var i = 0; i < recBuffers.length; i++) {
-        result.set(recBuffers[i], offset);
-        offset += recBuffers[i].length;
-    }
-    return result;
-}
-
-function interleave(inputL, inputR) {
-    var length = inputL.length + inputR.length;
-    var result = new Float32Array(length);
-
-    var index = 0
-        , inputIndex = 0;
+/**
+ * interleave将各声道信息数组扁平化
+ * @param inputL
+ * @param inputR
+ * @returns {Float32Array}
+ */
+WaveWorker.prototype.interleave = function (inputL, inputR) {
+    let length = inputL.length + inputR.length
+    let result = new Float32Array(length)
+    let index = 0
+    let inputIndex = 0
 
     while (index < length) {
-        result[index++] = inputL[inputIndex];
-        result[index++] = inputR[inputIndex];
-        inputIndex++;
+        result[index++] = inputL[inputIndex]
+        result[index++] = inputR[inputIndex]
+        inputIndex++
     }
-    return result;
+    return result
 }
 
-function floatTo16BitPCM(output, offset, input) {
-    for (var i = 0; i < input.length; i++,
-        offset += 2) {
-        var s = Math.max(-1, Math.min(1, input[i]));
+/**
+ * floatTo16bitPCM将音频设备采集的元素范围在[0,1]之间的Float32Array，转换成一个元素是16位有符号整数的Float32Array中
+ * @param output
+ * @param offset
+ * @param input
+ */
+WaveWorker.prototype.floatTo16BitPCM = function (output, offset, input){
+    for (let i = 0; i < input.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, input[i]));
         output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
 }
 
-function writeString(view, offset, string) {
-    for (var i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
+/**
+ * 下采样 缓冲区
+ * 重采样的原理上，程序根据重采样和原始采用率的比值，间隔采样音频原数据，丢弃掉其他采样点数据，从而模拟采样率的等比例下降。
+ * 注：间隔丢弃原数据在重采样率是原采样率的整数倍分之一时（即1、1/2、1/3…）才不会损失用户音色。
+ *      另外，重采样率比原采样率高时，需要在采样点中间额外插值，这里未实现。
+ * @param buffer 获取的buffer数据
+ * @param desiredSampleRate 采样比例
+ * @returns {Float32Array|*}
+ */
+WaveWorker.prototype.downSampleBuffer = function (buffer, desiredSampleRate){
+    if (desiredSampleRate === this.originalSampleRate) {
+        return buffer
+    }
+    if (desiredSampleRate > this.originalSampleRate) {
+        throw "down sampling rate show be smaller than original sample rate"
+    }
+    let sampleRateRatio = this.originalSampleRate / desiredSampleRate
+    let newLength = Math.round(buffer.length / sampleRateRatio)
+    let result = new Float32Array(newLength);
+    let offsetResult = 0
+    let offsetBuffer = 0
+    while (offsetResult < result.length) {
+        let nextOffsetBuffer = Math.round((offsetResult + 1) * sampleRateRatio)
+        let accum = 0, count = 0
+        for (let i = offsetBuffer; i < nextOffsetBuffer && i < buffer.length; i++) {
+            accum += buffer[i]
+            count++
+        }
+        result[offsetResult] = accum / count
+        offsetResult++
+        offsetBuffer = nextOffsetBuffer
+    }
+
+    return result
+}
+
+WaveWorker.prototype.writeString = function (view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i))
     }
 }
 
 /**
- * 编码Wave
- * @param rate
+ * 为即将生成的音频文件写入音频头
  * @param samples
  * @returns {DataView}
  */
-function encodeWAV(rate, samples) {
-    var buffer = new ArrayBuffer(44 + samples.length * 2);
-    var view = new DataView(buffer);
-    sampleRate = rate;
+WaveWorker.prototype.encodeWAV = function (samples){
+    let buffer = new ArrayBuffer(44 + samples.length * 2)
+    let view = new DataView(buffer)
+
     /* RIFF identifier */
-    writeString(view, 0, 'RIFF');
+    this.writeString(view, 0, 'RIFF')
     /* RIFF chunk length */
-    view.setUint32(4, 36 + samples.length * 2, true);
+    view.setUint32(4, 36 + samples.length * 2, true)
     /* RIFF type */
-    writeString(view, 8, 'WAVE');
+    this.writeString(view, 8, 'WAVE')
     /* format chunk identifier */
-    writeString(view, 12, 'fmt ');
+    this.writeString(view, 12, 'fmt ')
     /* format chunk length */
-    view.setUint32(16, 16, true);
+    view.setUint32(16, 16, true)
     /* sample format (raw) */
-    view.setUint16(20, 1, true);
+    view.setUint16(20, 1, true)
     /* channel count */
-    view.setUint16(22, numChannels, true);
+    view.setUint16(22, this.numberOfChannels, true)
     /* sample rate */
-    view.setUint32(24, sampleRate, true);
+    view.setUint32(24, this.desiredSampleRate, true)
     /* byte rate (sample rate * block align) */
-    view.setUint32(28, sampleRate * 4, true);
+    view.setUint32(28, this.desiredSampleRate * 4, true)
     /* block align (channel count * bytes per sample) */
-    view.setUint16(32, numChannels * 2, true);
+    view.setUint16(32, this.numberOfChannels * 2, true)
     /* bits per sample */
-    view.setUint16(34, 16, true);
+    view.setUint16(34, 16, true)
     /* data chunk identifier */
-    writeString(view, 36, 'data');
+    this.writeString(view, 36, 'data')
     /* data chunk length */
-    view.setUint32(40, samples.length * 2, true);
+    view.setUint32(40, samples.length * 2, true)
 
-    floatTo16BitPCM(view, 44, samples);
+    this.floatTo16BitPCM(view, 44, samples)
 
-    return view;
+    return view
 }
+
+/**
+ * 生成导出数据
+ */
+WaveWorker.prototype.exportWAV = function (){
+    let This = this
+    let buffers = []
+    for (let channel = 0; channel < This.numberOfChannels; channel++) {
+        buffers.push(This.mergeBuffers(This.recorderBuffers[channel], This.recorderBufferLength))
+    }
+    let interleaved
+    let downSampledBuffer
+    if (This.numberOfChannels === 2) {
+        interleaved = This.interleave(buffers[0], buffers[1])
+        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
+    } else {
+        interleaved = buffers[0]
+        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
+    }
+
+    let dataView = This.encodeWAV(downSampledBuffer)
+    let audioBlob = new Blob([dataView], {type: This.mimeType})
+
+    console.warn(This)
+    self.postMessage({
+        command: 'exportWAV',
+        data: audioBlob
+    })
+}
+
+waveWorker = new WaveWorker()

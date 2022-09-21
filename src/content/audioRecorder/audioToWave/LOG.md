@@ -6,3 +6,4 @@
 - 添加文件上传处理
 - 调整文件路径
 - 从recorder.js中分离recorder(waveRecorder.js) 和 worker(waveEncoderWorker.js)逻辑
+- 封装Recorder和WaveWorker类
