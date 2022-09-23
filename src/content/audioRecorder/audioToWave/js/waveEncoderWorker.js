@@ -176,13 +176,25 @@ WaveWorker.prototype.writeString = function (view, offset, string) {
 
 /**
  * 为即将生成的音频文件写入音频头
+ * 一般情况下，wav数据实际上就是裸数据pcm外面包了一层文件头。除了其前部增加44个字节的wav头，其他的就是pcm数据
  * @param samples
  * @returns {DataView}
  */
 WaveWorker.prototype.encodeWAV = function (samples){
-    let buffer = new ArrayBuffer(44 + samples.length * 2)
+    let fileHeaderOfferSet = 44   // 头文件长度
+    /* 自定义文件头长度 */
+    fileHeaderOfferSet +=8        // ring.bin, Filed size 8
+    fileHeaderOfferSet +=4        // 年, Filed size 4
+    fileHeaderOfferSet +=2        // 月, Filed size 2
+    fileHeaderOfferSet +=2        // 日, Filed size 2
+    fileHeaderOfferSet +=2        // 时, Filed size 2
+    fileHeaderOfferSet +=2        // 分, Filed size 2
+    /* 自定义文件头长度*/
+
+    let buffer = new ArrayBuffer(fileHeaderOfferSet + samples.length * 2)
     let view = new DataView(buffer)
 
+    // WAV音频文件头信息
     /* RIFF identifier */
     this.writeString(view, 0, 'RIFF')
     /* RIFF chunk length */
@@ -209,8 +221,41 @@ WaveWorker.prototype.encodeWAV = function (samples){
     this.writeString(view, 36, 'data')
     /* data chunk length */
     view.setUint32(40, samples.length * 2, true)
+    /* 到这里文件头信息填写完成，通常情况下共44个字节*/
 
-    this.floatTo16BitPCM(view, 44, samples)
+    // 添加自定义文件头信息
+    this.writeString(view, 44, 'ring.bin')   // Filed size: 8
+
+    let myDate = new Date()
+    let year = myDate.getFullYear(); // 获取完整的年份(4位,1970-????)    2022
+    let month = myDate.getMonth(); // 获取当前月份(0-11,0代表1月)   8
+    let date = myDate.getDate(); // 获取当前日(1-31)   23
+    let hour = myDate.getHours(); // 获取当前小时数(0-23)   17
+    let minutes = myDate.getMinutes(); // 获取当前分钟数(0-59)    37
+
+    console.log('year:', year)
+    console.log('month:', month)
+    console.log('date:', date)
+    console.log('hour:', hour)
+    console.log('minutes:', minutes)
+
+    // 这种方式添加进去二进制数据为0
+    // this.writeString(view, 44 + 8, year)
+    // this.writeString(view, 44 + 8 + 4, month)
+    // this.writeString(view, 44 + 8 + 4 + 2, date)
+    // this.writeString(view, 44 + 8 + 4 + 2 + 2, hour)
+    // this.writeString(view, 44 + 8 + 4 + 2 + 2 + 2, minutes)
+
+    view.setUint16(44 + 8, year, true)   // 年, Filed size 4
+    view.setUint16(44 + 8 + 4, month, true)   // 月, Filed size 2
+    view.setUint16(44 + 8 + 4 + 2, date, true)   // 日, Filed size 2
+    view.setUint16(44 + 8 + 4 + 2 + 2, hour, true)   // 时, Filed size 2
+    view.setUint16(44 + 8 + 4 + 2 + 2 + 2, minutes, true)   // 分, Filed size 2
+    // 添加自定义文件头信息结束
+
+    console.log('offset:', fileHeaderOfferSet)
+    /* 给wav头增加pcm体 */
+    this.floatTo16BitPCM(view, fileHeaderOfferSet, samples)
 
     return view
 }

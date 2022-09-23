@@ -190,10 +190,10 @@ select:focus {
 }
 
 button  {
-  width: 100%;
+  width: 233px;
   height: 35px;
-  border: 1px dashed;
+  background-color: #d84a38;
+  border: none;
   border-radius: 5px;
-  font-size: 19px;
-  background: #b0e8f9;
+  color: white;
 }

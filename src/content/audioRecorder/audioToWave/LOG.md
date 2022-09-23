@@ -7,3 +7,8 @@
 - 调整文件路径
 - 从recorder.js中分离recorder(waveRecorder.js) 和 worker(waveEncoderWorker.js)逻辑
 - 封装Recorder和WaveWorker类
+
+
+### 2022-9-23
+
+- wav音频添加自定义ring.bin文件头

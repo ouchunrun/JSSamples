@@ -19,14 +19,6 @@
   </select>
 </div>
 
-<div style="margin: 50px 0 35px 0;">
-  <button id="clickToUpload">
-    Click here to upload files
-  </button>
-  <input type="file" class="localShare" id="uploadFile" style="display: none;" />
-</div>
-
-
 <div class="recordBox">
   <a href="javascript:;" id="recordButton" class="stop"><img src="./imgs/recording.png" alt=""></a>
   <a href="javascript:;" id="stopButton" class=""><img src="./imgs/recording.png" alt=""></a>
@@ -37,13 +29,15 @@
   <p class="errorTips" class=""></p>
 </div>
 
-<div>
-  <div>操作区</div>
-  <button onclick="stopRecording()" style="background: #e0e195;">停止转换</button>
+<div style="margin: 50px 0 35px 0;">
+  <button id="clickToUpload">上传本地音频</button>
+  <input type="file" class="localShare" id="uploadFile" style="display: none;" />
+
+  <button onclick="stopRecording()">停止转换</button>
 </div>
 
 <div>
-  <label>在线播放：</label>
+  <label>转换后的音频：</label>
   <audio id="player" controls></audio>
 </div>
 
