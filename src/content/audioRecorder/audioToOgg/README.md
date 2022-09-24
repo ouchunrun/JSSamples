@@ -19,6 +19,8 @@ Demo 源码来源：https://github.com/chris-rudmin/opus-recorder
 
 ### 转换格式与限制
 
+> GRP26xx 需求：音频转换为ogg格式
+
 - Sampling rate : 16.0 kHz
 - Channel(s) : 1 channel
 - Format: Opus

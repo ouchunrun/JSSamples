@@ -13,3 +13,14 @@
   语音只保留最后一次的录音;
   采样率默认8000,可修改(recRate),可在代码中写死;
   本地运行时,接口会跨域(可使用允许跨域的谷歌进行查看);
+
+### 转换条件
+
+> GRP26xx 需求：The tool converts music files into PCMU (G.711A) format of up to 64KB each
+
+- Format : PCM
+- Channel(s) : 1 channel  (单声道)
+- Sampling rate : 8 000 Hz  (8KHz 采样率)
+- Bit depth : 16 bits (位深)
+- 编码器：G.711A(u-law)  【未实现】
+- 生成文件为 .bin 格式
