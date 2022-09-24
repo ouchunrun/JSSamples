@@ -1,4 +1,6 @@
 let desiredFormatSelect = document.getElementById('desiredFormat')
+let audioFadeOut = document.getElementById('audioFadeOut')
+
 let player = document.querySelector('#player');
 let recorderLists = document.querySelector('#recorderLists');
 let uploadFile = document.getElementById('uploadFile')
@@ -32,15 +34,18 @@ uploadFile.onchange = function () {
     logPrint('Recorder duration has been set to ' + duration)
 
     let desiredFormat = desiredFormatSelect.options[desiredFormatSelect.selectedIndex].value
+    console.log('desired format: ', desiredFormat)
+    console.log('audio fade out enabled ', audioFadeOut.checked)
     encoderOgg({
         file: this.files[0],
         duration: duration,   // 文件录制时长
         desiredFormat: desiredFormat,
+        audioFadeOut: audioFadeOut.checked,
         monitorGain: 0,
         recordingGain: 1,
         numberOfChannels: 1,
-        desiredSampleRate: (desiredFormat === 'ogg') ? 16000 : 8000,    // Desired encoding sample rate. Audio will be resampled
-        encoderWorkerPath: (desiredFormat === 'ogg') ? './to-ogg-worker/encoderWorker.js' : './to-ogg-worker/waveWorker.js',
+        desiredSampleRate: 16000,    // Desired encoding sample rate. Audio will be resampled
+        encoderWorkerPath: './to-ogg-worker/encoderWorker.js',
 
         /**
          * 进度处理

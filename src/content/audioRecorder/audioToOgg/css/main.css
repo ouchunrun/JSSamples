@@ -102,3 +102,11 @@ body {
     background: linear-gradient(180deg,#5689ff,#2d65e7);
     color: #fff;
 }
+#desiredFormat{
+    width: 110px;
+    height: 25px;
+}
+
+#recordingDuration{
+    text-align: left;
+}

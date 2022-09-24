@@ -39,12 +39,11 @@ function createRecorder (data) {
 
     mediaRecorder.ondataavailable = function (blob) {
         console.log('Data ondataavailable received')
-        let fileType = (mediaRecorder.recoderOptions.desiredFormat === 'ogg') ? 'audio/ogg;codecs=opus' : 'audio/wav;codecs=pcmu'
         mediaRecorder.recoderOptions.doneCallBack(
             new File(
             [blob],
-            `${mediaRecorder.fileName}.${mediaRecorder.recoderOptions.desiredFormat}`,
-            {type: fileType}
+            `${mediaRecorder.fileName}.ogg`,
+            {type: 'audio/ogg;codecs=opus'}
             ),
             blob
         )

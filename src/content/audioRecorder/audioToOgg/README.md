@@ -19,11 +19,13 @@ Demo 源码来源：https://github.com/chris-rudmin/opus-recorder
 
 ### 转换格式与限制
 
-- 1.音频文件转换为ogg格式文件，采样率 16K， 单声道
-- ~~2.上传文件大小不超过`9M`~~   [暂不限制文件大小]
-- 3.转换后的最好不超过`192KB`。超过的话我们的设备会拒绝下载这个文件，这样的话客户就用不了
-- 4.支持的转换格式随浏览器的能力来，不同浏览器还有些差别
-- 5.支持勾选音频是否淡出
+- Sampling rate : 16.0 kHz
+- Channel(s) : 1 channel
+- Format: Opus
+- 输出文件后缀为 .ogg
+- 支持选择音频是否淡出
+- 转换后的最好不超过`192KB`。超过的话我们的设备会拒绝下载这个文件，这样的话客户就用不了
+- 支持的转换格式随浏览器的能力来，不同浏览器还有些差别
   
 ### 处理逻辑
 
@@ -63,48 +65,6 @@ fileReader.onload = function () {
 ```
 - 4.在scriptProcessorNode.onaudioprocess中以固定时间间隔返回处理数据。总数据时长达到设置时长时，停止recorder
 - 5.录制结束后，页面生成下载链接和audio在线播放链接
-
-### 参数说明 
-
-- file：上传文件
-- duration： 文件录制时长，单位（秒）
-- progressCallback 回调参数
-    - state："done" 表示转换结束， "recording" 表示还在处理中
-    - percent： 转换进度
-
-- doneCallBack  文件转换完成的回调
-- errorCallBack： 错误回调
-- numberOfChannels：声道，默认1
-- encoderSampleRate：采样率： 默认16K
-- encoderWorkerPath： encoderWorker.js 路径
-- OggOpusEncoderWasmPath：wasm 路径
-- monitorGain：可选，默认0
-- recordingGain：可选，默认1，
-   
-### 调用示例：
-
-```javascript
-/**
- * 文件上传
- * @type {HTMLElement}
- */
-let fileInput = document.getElementById('fileInput')
-fileInput.onchange = function () {
-    encoderOgg({
-        file: this.files[0],
-        duration: 30,
-        progressCallback: progressCallback,
-        doneCallBack:doneCallBack,
-        errorCallBack: errorCallBack,
-        monitorGain: parseInt(monitorGain.value, 10),
-        recordingGain: parseInt(recordingGain.value, 10),
-        numberOfChannels: parseInt(numberOfChannels.value, 10),
-        encoderSampleRate: parseInt(encoderSampleRate.value, 10),
-        encoderWorkerPath: '/to-ogg-worker/encoderWorker.js',
-    })
-    fileInput.value = "";  // clear input
-};
-``` 
 
 ### 问题记录
 
