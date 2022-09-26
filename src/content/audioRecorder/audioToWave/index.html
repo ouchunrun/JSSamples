@@ -10,7 +10,7 @@
 <body>
 
 <div>
-  <span>请选择音频的sampleRate(采样率)的赫兹大小:</span>
+  <span>sampleRate(采样率)的赫兹大小:</span>
   <select name="recRate" id="recRate">
     <option value="8000">8000</option>
     <option value="16000">16000</option>
@@ -19,31 +19,28 @@
   </select>
 </div>
 
-<div class="recordBox">
-  <a href="javascript:;" id="recordButton" class="stop"><img src="./imgs/recording.png" alt=""></a>
-  <a href="javascript:;" id="stopButton" class=""><img src="./imgs/recording.png" alt=""></a>
-  <input type="text" id="recordTxt" placeholder="请按语音键录音">
+<div class="duration">
+  <label>Recording duration</label>
+  <input type="range" min="1" max="30" value="30">
+  <span class="durationShow">30</span>s
 
-  <!--  刷新按钮  -->
-  <a href="javascript:;" class="refresh"><img src="./imgs/refresh.png" alt=""></a>
-  <p class="errorTips" class=""></p>
+  <label>| Audio fade out</label>
+  <input id="audioFadeOut" type="checkbox" value="" checked />
 </div>
 
 <div style="margin: 50px 0 35px 0;">
   <button id="clickToUpload">上传本地音频</button>
   <input type="file" class="localShare" id="uploadFile" style="display: none;" />
-
-  <button onclick="stopRecording()">停止转换</button>
 </div>
 
-<div>
+<div>s
   <label>转换后的音频：</label>
   <audio id="player" controls></audio>
 </div>
 
-<script src="js/jquery1.7.js"></script>
 <script src="js/waveEncoderWorker.js"></script>
 <script src="js/waveRecorder.js"></script>
-<script src="js/app.js"></script>
+<script src="js/encoderWave.js"></script>
+<script src="js/index.js"></script>
 </body>
 </html>

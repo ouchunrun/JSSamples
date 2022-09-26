@@ -4,16 +4,17 @@ self.onmessage = function (e) {
     switch (e.data.command) {
         case 'init':
             waveWorker.init(e.data.config)
-            break;
+            break
         case 'record':
             waveWorker.record(e.data.buffer)
-            break;
+            break
         case 'exportWAV':
+        case 'stopRecorder':
             waveWorker.exportWAV()
-            break;
+            break
         case 'getBuffer':
             waveWorker.getBuffer()
-            break;
+            break
         case 'clear':
             waveWorker.clear()
             break
@@ -32,8 +33,8 @@ function WaveWorker(){
 }
 
 WaveWorker.prototype.init = function (config){
-    console.info('init config:', JSON.stringify(config, null, '    '))
-    this.originalSampleRate = config.originalSampleRate
+    console.info('worker init config:', JSON.stringify(config, null, '    '))
+    this.originalSampleRate = config.originalSampleRate || 48000
     this.desiredSampleRate = config.desiredSampleRate || 8000
     this.numberOfChannels = config.numberOfChannels || 1
     this.mimeType = config.mimeType || 'audio/wav'
@@ -224,8 +225,6 @@ WaveWorker.prototype.encodeWAV = function (samples){
     /* 到这里文件头信息填写完成，通常情况下共44个字节*/
 
     // 添加自定义文件头信息
-    this.writeString(view, 44, 'ring.bin')   // Filed size: 8
-
     let myDate = new Date()
     let year = myDate.getFullYear(); // 获取完整的年份(4位,1970-????)    2022
     let month = myDate.getMonth(); // 获取当前月份(0-11,0代表1月)   8
@@ -233,27 +232,14 @@ WaveWorker.prototype.encodeWAV = function (samples){
     let hour = myDate.getHours(); // 获取当前小时数(0-23)   17
     let minutes = myDate.getMinutes(); // 获取当前分钟数(0-59)    37
 
-    console.log('year:', year)
-    console.log('month:', month)
-    console.log('date:', date)
-    console.log('hour:', hour)
-    console.log('minutes:', minutes)
-
-    // 这种方式添加进去二进制数据为0
-    // this.writeString(view, 44 + 8, year)
-    // this.writeString(view, 44 + 8 + 4, month)
-    // this.writeString(view, 44 + 8 + 4 + 2, date)
-    // this.writeString(view, 44 + 8 + 4 + 2 + 2, hour)
-    // this.writeString(view, 44 + 8 + 4 + 2 + 2 + 2, minutes)
-
-    view.setUint16(44 + 8, year, true)   // 年, Filed size 4
-    view.setUint16(44 + 8 + 4, month, true)   // 月, Filed size 2
-    view.setUint16(44 + 8 + 4 + 2, date, true)   // 日, Filed size 2
-    view.setUint16(44 + 8 + 4 + 2 + 2, hour, true)   // 时, Filed size 2
-    view.setUint16(44 + 8 + 4 + 2 + 2 + 2, minutes, true)   // 分, Filed size 2
+    this.writeString(view, 44, 'ring.bin')   // Filed size: 8
+    view.setUint16(52, year, true)   // 年, Filed size 4
+    view.setUint16(56, month, true)   // 月, Filed size 2
+    view.setUint16(58, date, true)   // 日, Filed size 2
+    view.setUint16(60, hour, true)   // 时, Filed size 2
+    view.setUint16(62, minutes, true)   // 分, Filed size 2
     // 添加自定义文件头信息结束
 
-    console.log('offset:', fileHeaderOfferSet)
     /* 给wav头增加pcm体 */
     this.floatTo16BitPCM(view, fileHeaderOfferSet, samples)
 
@@ -282,9 +268,8 @@ WaveWorker.prototype.exportWAV = function (){
     let dataView = This.encodeWAV(downSampledBuffer)
     let audioBlob = new Blob([dataView], {type: This.mimeType})
 
-    console.warn(This)
     self.postMessage({
-        command: 'exportWAV',
+        command: 'encoderDone',
         data: audioBlob
     })
 }
