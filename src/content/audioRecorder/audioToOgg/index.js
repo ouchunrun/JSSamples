@@ -42,7 +42,7 @@ uploadFile.onchange = function () {
         encoderType: desiredFormat,
         audioFadeOut: audioFadeOut.checked,
         desiredSampleRate: 16000,    // Desired encoding sample rate. Audio will be resampled
-        encoderWorkerPath: './toOgg/encoderWorker.js',
+        encoderWorkerPath: './toOgg/oggOpusEncoderWorker.js',
 
         /**
          * 进度处理

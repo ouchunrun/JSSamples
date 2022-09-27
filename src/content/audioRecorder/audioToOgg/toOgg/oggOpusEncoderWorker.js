@@ -1645,7 +1645,7 @@ function isDataURI(filename) {
 }
 
 
-var wasmBinaryFile = 'encoderWorker.wasm';
+var wasmBinaryFile = 'oggOpusEncoderWorker.wasm';
 if (!isDataURI(wasmBinaryFile)) {
     wasmBinaryFile = locateFile(wasmBinaryFile);
 }
