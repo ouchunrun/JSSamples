@@ -39,11 +39,8 @@ uploadFile.onchange = function () {
     encoderOgg({
         file: this.files[0],
         duration: duration,   // 文件录制时长
-        desiredFormat: desiredFormat,
+        encoderType: desiredFormat,
         audioFadeOut: audioFadeOut.checked,
-        monitorGain: 0,
-        recordingGain: 1,
-        numberOfChannels: 1,
         desiredSampleRate: 16000,    // Desired encoding sample rate. Audio will be resampled
         encoderWorkerPath: './toOgg/encoderWorker.js',
 

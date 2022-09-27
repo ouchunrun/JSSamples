@@ -6,20 +6,19 @@
 function createRecorder (data) {
     let mediaRecorder
     let options = {
-        monitorGain: data.monitorGain || 0,
-        recordingGain: data.recordingGain || 1,
-        numberOfChannels: data.numberOfChannels || 1,
-        //  to ogg config
-        encoderSampleRate: data.desiredSampleRate || 16000,
-        originalSampleRateOverride: data.desiredSampleRate || 16000,
-        // to wav config
-        wavSampleRate: data.desiredSampleRate || 8000,
-
-        recordingDuration: data.duration || 30000,
-        encoderPath: data.encoderWorkerPath,
-        desiredFormat: data.desiredFormat,       // 期望转换后的格式
+        workerPath: data.encoderWorkerPath,     // worker 加载路径
+        encoderType: data.encoderType,       // 期望转换后的格式
+        desiredSampleRate: data.desiredSampleRate,
+        originalSampleRateOverride: data.desiredSampleRate,
     }
     mediaRecorder = new Recorder(options, data)
+
+    let defaultRing = ['ring1', 'ring2', 'ring3', 'ring4', 'ring5', 'ring6', 'doorbell', 'silent']
+    let fileName = data.file.name.replace(/\.[^\.]+$/, '')
+    if(defaultRing.includes(fileName)){
+        fileName = 'cust_' + fileName
+    }
+    mediaRecorder.fileName = fileName
 
     mediaRecorder.onstart = function (e) {
         console.log('mediaRecorder is started')
@@ -39,14 +38,8 @@ function createRecorder (data) {
 
     mediaRecorder.ondataavailable = function (blob) {
         console.log('Data ondataavailable received')
-        mediaRecorder.recoderOptions.doneCallBack(
-            new File(
-            [blob],
-            `${mediaRecorder.fileName}.ogg`,
-            {type: 'audio/ogg;codecs=opus'}
-            ),
-            blob
-        )
+        let file =  new File([blob], `${mediaRecorder.fileName}.${data.encoderType}`)
+        mediaRecorder.recoderOptions.doneCallBack(file , blob)
     }
 
     return mediaRecorder
@@ -196,12 +189,6 @@ function encoderOgg (data) {
 
         fileReader.readAsArrayBuffer(file)
         recorder = createRecorder(data)
-        let defaultRing = ['ring1', 'ring2', 'ring3', 'ring4', 'ring5', 'ring6', 'doorbell', 'silent']
-        let fileName = file.name.replace(/\.[^\.]+$/, '')
-        if(defaultRing.includes(fileName)){
-            fileName = 'cust_' + fileName
-        }
-        recorder.fileName = fileName
     } catch (e) {
         data.errorCallBack(Recorder.ERROR_MESSAGE.ERROR_CODE_1009(e))
     }

@@ -1,3 +1,46 @@
+function createRecorder(data){
+    let mediaRecorder
+    let options = {
+        workerPath: data.encoderWorkerPath,   // worker 加载路径
+        encoderType: data.encoderType,       // 期望转换后的格式
+        desiredSampleRate: data.desiredSampleRate,
+        originalSampleRateOverride: data.desiredSampleRate,
+    }
+    mediaRecorder = new Recorder(options, data)
+
+    let defaultRing = ['ring1', 'ring2', 'ring3', 'ring4', 'ring5', 'ring6', 'doorbell', 'silent']
+    let fileName = data.file.name.replace(/\.[^\.]+$/, '')
+    if(defaultRing.includes(fileName)){
+        fileName = 'cust_' + fileName
+    }
+    mediaRecorder.fileName = fileName
+
+    mediaRecorder.onstart = function (e) {
+        console.log('mediaRecorder is started')
+    }
+
+    mediaRecorder.onstop = function (e) {
+        console.log('mediaRecorder is stopped')
+    }
+
+    mediaRecorder.onpause = function (e) {
+        console.log('mediaRecorder is paused')
+    }
+
+    mediaRecorder.onresume = function (e) {
+        console.log('mediaRecorder is resuming')
+    }
+
+    mediaRecorder.ondataavailable = function (blob) {
+        console.log('Data ondataavailable received')
+        let file =   new File([blob], `${mediaRecorder.fileName}.${data.encoderType}`)
+        mediaRecorder.recoderOptions.doneCallBack(file , blob)
+    }
+
+    return mediaRecorder
+}
+
+
 function encoderWave(data){
     let browserDetails = Recorder.getBrowserDetails()
     console.log('browserDetails : ', browserDetails)
@@ -128,18 +171,5 @@ function encoderWave(data){
     }catch (e){
         data.errorCallBack(Recorder.ERROR_MESSAGE.ERROR_CODE_1009(e))
     }
-}
-
-
-function createRecorder(data){
-    let mediaRecorder
-    let options = {
-        encoderPath: data.encoderWorkerPath,
-        desiredSampleRate: data.desiredSampleRate
-    }
-    mediaRecorder = new Recorder(options, data)
-    //start the recording process
-    mediaRecorder.record()  // 设置recording为true
-    return mediaRecorder
 }
 

@@ -3,19 +3,19 @@ let waveWorker
 self.onmessage = function (e) {
     switch (e.data.command) {
         case 'init':
-            waveWorker.init(e.data.config)
+            waveWorker.init(e.data)
             break
-        case 'record':
-            waveWorker.record(e.data.buffer)
+        case 'encode':
+            // 记录数据
+            waveWorker.record(e.data.buffers)
             break
-        case 'exportWAV':
-        case 'stopRecorder':
+        case 'done':
             waveWorker.exportWAV()
             break
         case 'getBuffer':
             waveWorker.getBuffer()
             break
-        case 'clear':
+        case 'close':
             waveWorker.clear()
             break
         default:
@@ -24,12 +24,12 @@ self.onmessage = function (e) {
 }
 
 function WaveWorker(){
-    this.mimeType = null
     this.recorderBufferLength = 0
     this.recorderBuffers = []
     this.originalSampleRate = undefined
-    this.desiredSampleRate = undefined       // 目标采样率
+    this.desiredSampleRate = undefined     // 目标采样率
     this.numberOfChannels = undefined      // 采样通道。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
+    this.bitsPerSample = null
 }
 
 WaveWorker.prototype.init = function (config){
@@ -37,7 +37,7 @@ WaveWorker.prototype.init = function (config){
     this.originalSampleRate = config.originalSampleRate || 48000
     this.desiredSampleRate = config.desiredSampleRate || 8000
     this.numberOfChannels = config.numberOfChannels || 1
-    this.mimeType = config.mimeType || 'audio/wav'
+    this.bitsPerSample = config.bitsPerSample || 16
 
     this.initBuffers()
 }
@@ -79,7 +79,7 @@ WaveWorker.prototype.getBuffer = function (){
     }
 
     self.postMessage({
-        command: 'getBuffer',
+        message: 'getBuffer',
         data: buffers
     })
 }
@@ -217,7 +217,7 @@ WaveWorker.prototype.encodeWAV = function (samples){
     /* block align (channel count * bytes per sample) */
     view.setUint16(32, this.numberOfChannels * 2, true)
     /* bits per sample */
-    view.setUint16(34, 16, true)
+    view.setUint16(34, this.bitsPerSample, true)
     /* data chunk identifier */
     this.writeString(view, 36, 'data')
     /* data chunk length */
@@ -226,17 +226,17 @@ WaveWorker.prototype.encodeWAV = function (samples){
 
     // 添加自定义文件头信息
     let myDate = new Date()
-    let year = myDate.getFullYear(); // 获取完整的年份(4位,1970-????)    2022
-    let month = myDate.getMonth(); // 获取当前月份(0-11,0代表1月)   8
-    let date = myDate.getDate(); // 获取当前日(1-31)   23
-    let hour = myDate.getHours(); // 获取当前小时数(0-23)   17
-    let minutes = myDate.getMinutes(); // 获取当前分钟数(0-59)    37
+    let year = myDate.getFullYear();
+    let month = myDate.getMonth();
+    let date = myDate.getDate();
+    let hour = myDate.getHours();
+    let minutes = myDate.getMinutes();
 
-    this.writeString(view, 44, 'ring.bin')   // Filed size: 8
-    view.setUint16(52, year, true)   // 年, Filed size 4
-    view.setUint16(56, month, true)   // 月, Filed size 2
-    view.setUint16(58, date, true)   // 日, Filed size 2
-    view.setUint16(60, hour, true)   // 时, Filed size 2
+    this.writeString(view, 44, 'ring.bin')     // ring.bin, Filed size: 8
+    view.setUint16(52, year, true)      // 年, Filed size 4
+    view.setUint16(56, month, true)     // 月, Filed size 2
+    view.setUint16(58, date, true)      // 日, Filed size 2
+    view.setUint16(60, hour, true)      // 时, Filed size 2
     view.setUint16(62, minutes, true)   // 分, Filed size 2
     // 添加自定义文件头信息结束
 
@@ -266,12 +266,11 @@ WaveWorker.prototype.exportWAV = function (){
     }
 
     let dataView = This.encodeWAV(downSampledBuffer)
-    let audioBlob = new Blob([dataView], {type: This.mimeType})
-
     self.postMessage({
-        command: 'encoderDone',
-        data: audioBlob
+        message: 'done',
+        data: dataView
     })
 }
 
 waveWorker = new WaveWorker()
+self.postMessage({message: 'ready'})

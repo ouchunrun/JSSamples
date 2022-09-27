@@ -1,33 +1,41 @@
+/* eslint-disable default-case */
 
-/**
- * let mediaStreamSource = audioCtx.createMediaStreamSource(destination.stream)
- * @param config
- * @constructor
- */
+let AudioContext = window.AudioContext || window.webkitAudioContext
+// Constructor
 function Recorder(config, data) {
     if (!Recorder.isRecordingSupported()) {
         console.error('AudioContext or WebAssembly is not supported')
         return
     }
-
     if (!config) {
         config = {}
     }
 
     this.config = Object.assign({
+        // 通用配置
         bufferLength: 4096,                 // scriptProcessorNode 用于捕获音频的缓冲区的长度。默认为4096.
         mediaTrackConstraints: true,        // 指定媒体轨道约束的对象。默认为true.
         monitorGain: 0,                     // 设置监控输出的增益。增益是一个介于 0 和 1 之间的加权值。默认为 0
         numberOfChannels: 1,                // 要记录的通道数。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
         recordingGain: 1,                   // 设置录音输入的增益。增益是一个介于 0 和 1 之间的加权值。默认为 1
         reuseWorker: false,
-        originalSampleRate: undefined,   // context.sampleRate
-        desiredSampleRate: 8000,
-        numberOfChannels: 1,
-        mimeType: 'audio/wav'
+        workerPath: '',                     // worker 加载路径
+        encoderType: '',                    // 转换类型：ogg / wav
+
+        // 编码器的配置选项
+        encoderApplication: 2049,
+        encoderFrameSize: 20,                // 以毫秒为单位指定用于编码的帧大小。默认为 20
+        desiredSampleRate: 8000,             // wav转换时期望的采样率。默认为8000. 支持的值为8000、12000、16000、24000、48000
+        originalSampleRateOverride: 16000,   // Ogg转换时期望的采样率。默认为16000. 支持的值为8000、12000、16000、24000、48000
+        maxFramesPerPage: 40,                // 在生成页面之前要收集的最大帧数。这可用于降低流式传输延迟。值越低，流产生的开销就越大。默认为 40。
+        resampleQuality: 9,                  // 用于确定延迟和重采样处理。0速度最快，质量最低。10速度最慢，质量最高。默认为3
+
+        // Wave的配置选项
+        bitsPerSample: 16,                   // 采样位深。默认为16. 支持的值为8, 16, 24 and 32 bits
     }, config)
     console.log('Recorder config: ', JSON.stringify(this.config, null, '    '))
 
+    this.state = 'inactive'
     this.recording = false
     this.fileName = null
     this.audioContext = null
@@ -83,20 +91,6 @@ Recorder.ERROR_MESSAGE = {
     }
 }
 
-/**
- * 设置或更新目标录制时长
- * @param duration
- */
-Recorder.prototype.setRecordingDuration = function (duration){
-    if(!duration){
-        return
-    }
-
-    this.recordingDuration = duration
-    this.gainFadeOutTime = this.recordingDuration * 0.15
-    console.log('set recording duration, ' + duration)
-}
-
 // Static Methods
 Recorder.isRecordingSupported = function () {
     return AudioContext && window.WebAssembly
@@ -120,6 +114,20 @@ Recorder.prototype.clearStream = function () {
         this.audioContext.close()
         delete this.audioContext
     }
+}
+
+/**
+ * 设置或更新目标录制时长
+ * @param duration
+ */
+Recorder.prototype.setRecordingDuration = function (duration){
+    if(!duration){
+        return
+    }
+
+    this.recordingDuration = duration
+    this.gainFadeOutTime = this.recordingDuration * 0.15
+    console.log('set recording duration, ' + duration)
 }
 
 Recorder.prototype.setRecordingGain = function (gain) {
@@ -154,38 +162,43 @@ Recorder.prototype.setRecordingGainFadeOut = function (timeLeft){
     }
 }
 
-
 /**
  * 记录onaudioprocess获取到的buffer数据
  * @param inputBuffer
  */
-Recorder.prototype.recorderBuffers = function (inputBuffer){
-    let buffer = [];
-    for (let channel = 0; channel < inputBuffer.numberOfChannels; channel++) {
-        buffer.push(inputBuffer.getChannelData(channel))
+Recorder.prototype.encodeBuffers = function (inputBuffer){
+    if (this.state === 'recording') {
+        let buffers = []
+        for (let i = 0; i < inputBuffer.numberOfChannels; i++) {
+            buffers.push(inputBuffer.getChannelData(i))
+        }
+        this.worker.postMessage({
+            command: 'encode',
+            buffers: buffers
+        })
     }
-    this.worker.postMessage({command: 'record', buffer: buffer})
 }
 
-Recorder.prototype.initAudioGraph = function (sourceNode){
-    let This = this
-    // initAudioContext
-    this.sourceNode = sourceNode
+Recorder.prototype.initAudioContext = function (sourceNode){
     if (sourceNode && sourceNode.context){
         this.audioContext = sourceNode.context
+        this.closeAudioContext = false
     }else {
-        console.warn('sourceNode or context not found.')
+        this.audioContext = new AudioContext()
+        this.closeAudioContext = true
     }
-    this.config.originalSampleRate = this.audioContext.sampleRate
+    return this.audioContext
+}
 
-    this.scriptProcessorNode = this.audioContext.createScriptProcessor(
-        this.config.bufferLength,
-        this.config.numberOfChannels,
-        this.config.numberOfChannels
-    )
+Recorder.prototype.initAudioGraph = function (){
+    let This = this
+    // First buffer can contain old data. Don't encode it.
+    this.encodeBuffers = function () {
+        delete this.encodeBuffers
+    }
+    <!--创建声音的缓存节点，createScriptProcessor方法的第二个和第三个参数指的是输入和输出都是声道数，第一个参数缓存大小，一般数值为1024,2048,4096，这里选用4096-->
+    this.scriptProcessorNode = this.audioContext.createScriptProcessor(this.config.bufferLength, this.config.numberOfChannels, this.config.numberOfChannels)
     this.scriptProcessorNode.connect(this.audioContext.destination)
-    sourceNode.connect(this.scriptProcessorNode)
-
     // 此方法音频缓存，这里通过encodeBuffers方法进行缓存
     let audioprocessCount = 0
     let audioprocessDuration = 0
@@ -201,7 +214,7 @@ Recorder.prototype.initAudioGraph = function (sourceNode){
             console.log('get onaudioprocess trigger duration: ' + audioprocessDuration)
         }
         audioprocessCount++
-        This.recorderBuffers(e.inputBuffer)
+        This.encodeBuffers(e.inputBuffer)
 
         audioprocessTotalDuration = audioprocessCount * audioprocessDuration
         let timeLeft = This.recordingDuration - audioprocessTotalDuration
@@ -231,68 +244,138 @@ Recorder.prototype.initAudioGraph = function (sourceNode){
     this.recordingGainNode = this.audioContext.createGain()
     this.setRecordingGain(this.config.recordingGain)
     this.recordingGainNode.connect(this.scriptProcessorNode)
-
-    this.sourceNode.connect(this.monitorGainNode)
-    this.sourceNode.connect(this.recordingGainNode)
 }
 
-Recorder.prototype.start = function (sourceNode, recorderStopHandler){
-    this.recorderStopHandler = recorderStopHandler
-    this.initAudioGraph(sourceNode)
+Recorder.prototype.initSourceNode = function (sourceNode){
+    if (sourceNode && sourceNode.context) {
+        return window.Promise.resolve(sourceNode)
+    }
+    return null
+}
 
-    //this should not be necessary
-    this.initWorker()
+Recorder.prototype.loadWorker = function () {
+    if (!this.worker) {
+        this.worker = new window.Worker(this.config.workerPath)
+    }
 }
 
 Recorder.prototype.initWorker = function (){
-    var _this = this;
-    if (!this.worker) {
-        this.worker = new window.Worker(this.config.encoderPath)
-    }else {
-        console.log('worker already exist!')
-    }
+    let This = this
+    this.loadWorker()
 
-    this.worker.onmessage = function (e) {
-        switch (e.data.command){
-            case 'encoderDone':
-                // 导出转换的文件
-                _this.recoderOptions.doneCallBack(e.data.data)
-                break
-            default:
-                console.warn('worker e.data.command:', e.data.command)
-                break
+    return new Promise((resolve, reject) => {
+        let callback = (e) => {
+            switch (e.data.message){
+                case 'ready':
+                    resolve()
+                    break
+                case 'page':
+                    this.storePage(e['data']['page'])
+                    break
+                case 'done':
+                    this.worker.removeEventListener('message', callback)
+                    This.finish(e.data.data)
+                    break
+                default:
+                    console.warn('worker e.data.command:', e.data.command)
+                    break
+            }
         }
-    }
 
-    this.worker.postMessage({
-        command: 'init',
-        config: this.config
-    });
+        this.worker.addEventListener('message', callback)
+        this.worker.postMessage(Object.assign({
+            command: 'init',
+            originalSampleRate: this.audioContext.sampleRate,
+            wavSampleRate: this.audioContext.sampleRate
+        }, this.config))
+    })
 }
 
-Recorder.prototype.record = function (){
-    this.recording = true
+Recorder.prototype.start = function (sourceNode, recorderStopHandler){
+    if (this.state === 'inactive') {
+        this.recorderStopHandler = recorderStopHandler
+        this.initAudioContext(sourceNode)
+        this.initAudioGraph()
+
+        return Promise.all([this.initSourceNode(sourceNode), this.initWorker()]).then((results) => {
+            if (!results[0]) {
+                this.recoderOptions && this.recoderOptions.errorCallBack(Recorder.ERROR_MESSAGE.ERROR_CODE_1008)
+                return
+            }
+            this.sourceNode = results[0]
+            this.recording = true
+            this.state = 'recording'
+            this.onstart()
+            this.worker.postMessage({ command: 'getHeaderPages' })
+            this.sourceNode.connect(this.monitorGainNode)
+            this.sourceNode.connect(this.recordingGainNode)
+        })
+    }
 }
 
 Recorder.prototype.stop = function (){
-    this.recording = false
+    if (this.state !== 'inactive') {
+        this.state = 'inactive'
+        this.recording = false
+        this.monitorGainNode && this.monitorGainNode.disconnect()
+        this.scriptProcessorNode && this.scriptProcessorNode.disconnect()
+        this.recordingGainNode && this.recordingGainNode.disconnect()
+        this.sourceNode && this.sourceNode.disconnect()
+        this.clearStream()
 
-    this.monitorGainNode && this.monitorGainNode.disconnect()
-    this.scriptProcessorNode && this.scriptProcessorNode.disconnect()
-    this.recordingGainNode && this.recordingGainNode.disconnect()
-    this.sourceNode && this.sourceNode.disconnect()
-    this.clearStream()
+        let worker = this.worker
+        if (worker) {
+            return new Promise((resolve) => {
+                let callback = (e) => {
+                    if (e['data']['message'] === 'done') {
+                        worker.removeEventListener('message', callback)
+                        resolve()
+                    }
+                }
+                worker.addEventListener('message', callback)
+                worker.postMessage({ command: 'done' })
+                if (!this.config.reuseWorker) {
+                    worker.postMessage({ command: 'close' })
+                }
+            })
+        } else {
+            if (this.recoderOptions && this.recoderOptions.errorCallback) {
+                this.recoderOptions.errorCallback(Recorder.ERROR_MESSAGE.ERROR_CODE_1009())
+            }
+        }
+    }
+    return Promise.resolve()
+}
 
-    if(this.worker){
-        this.worker.postMessage({ command: 'stopRecorder'})
+Recorder.prototype.storePage = function (page) {
+    this.recordedPages.push(page)
+    this.totalLength += page.length
+}
+
+Recorder.prototype.finish = function (outputData) {
+    // ogg
+    if(!outputData && this.recordedPages && this.recordedPages.length){
+        outputData = new Uint8Array(this.totalLength)
+        this.recordedPages.reduce(function (offset, page) {
+            outputData.set(page, offset)
+            return offset + page.length
+        }, 0)
+    }
+
+    this.ondataavailable(outputData)
+
+    this.onstop()
+    if (!this.config.reuseWorker) {
+        delete this.encoder
     }
 }
 
-Recorder.prototype.clear = function (){
-    this.worker.postMessage({
-        command: 'clear'
-    });
-}
+// Callback Handlers
+Recorder.prototype.ondataavailable = function () {}
+Recorder.prototype.onpause = function () {}
+Recorder.prototype.onresume = function () {}
+Recorder.prototype.onstart = function () {}
+Recorder.prototype.onstop = function () {}
 
 /**
  * 判断浏览器类型和版本信息

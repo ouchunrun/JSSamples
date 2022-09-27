@@ -7,42 +7,47 @@ let Recorder = function (config, data) {
     console.error('AudioContext or WebAssembly is not supported')
     return
   }
-
   if (!config) {
     config = {}
   }
 
-  this.state = 'inactive'
+
   this.config = Object.assign({
     // 通用配置
     bufferLength: 4096,                 // scriptProcessorNode 用于捕获音频的缓冲区的长度。默认为4096.
-    encoderPath: 'encoderWorker.js',    // worker 脚本路径
     mediaTrackConstraints: true,        // 指定媒体轨道约束的对象。默认为true.
     monitorGain: 0,                     // 设置监控输出的增益。增益是一个介于 0 和 1 之间的加权值。默认为 0
     numberOfChannels: 1,                // 要记录的通道数。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
     recordingGain: 1,                   // 设置录音输入的增益。增益是一个介于 0 和 1 之间的加权值。默认为 1
     reuseWorker: false,
+    workerPath: '',                     // worker 加载路径
+    encoderType: '',                    // 转换类型：ogg / wav
 
     // 编码器的配置选项
     encoderApplication: 2049,
     encoderFrameSize: 20,                // 以毫秒为单位指定用于编码的帧大小。默认为 20
-    encoderSampleRate: 16000,            // 编码的采样率。默认为48000. 支持的值为8000、12000、16000、24000、48000
+    desiredSampleRate: 8000,             // wav转换时期望的采样率。默认为8000. 支持的值为8000、12000、16000、24000、48000
+    originalSampleRateOverride: 16000,   // Ogg转换时期望的采样率。默认为16000. 支持的值为8000、12000、16000、24000、48000
     maxFramesPerPage: 40,                // 在生成页面之前要收集的最大帧数。这可用于降低流式传输延迟。值越低，流产生的开销就越大。默认为 40。
     resampleQuality: 9,                  // 用于确定延迟和重采样处理。0速度最快，质量最低。10速度最慢，质量最高。默认为3
 
-    // 录音机的配置选项
-    streamPages: false,                  // dataAvailable 事件将在每个编码页面后触发。默认为false。 WAV recorder的配置选项
-    wavBitDepth: 16                      // WAV 文件的所需位深度。默认为16. 支持的值为8, 16, 24 and 32 bits
+    // Wave的配置选项
+    bitsPerSample: 16,                   // 采样位深。默认为16. 支持的值为8, 16, 24 and 32 bits
   }, config)
+  console.log('Recorder config: ', JSON.stringify(this.config, null, '    '))
 
-  this.encodedSamplePosition = 0
+  this.state = 'inactive'
+  this.recording = false
+  this.fileName = null
+  this.audioContext = null
   this.recoderOptions = data
   this.stream = null
   this.recordingDuration = config.recordingDuration || 30   // 指定录制时长，默认最大30秒
   this.recorderStopHandler = null     // 停止record的回调处理函数
   this.fadeOutEnabled = data.audioFadeOut
   this.fadeOutBeenSet = false            // 是否设置渐弱 已设置
-  this.gainFadeOutTime = this.recordingDuration * 0.15            // 音频渐弱时间
+  this.gainFadeOutTime = this.recordingDuration * 0.15
+  this.recorderStopHandler = null     // 停止record的回调处理函数// 音频渐弱时间
 }
 
 Recorder.ERROR_MESSAGE = {
@@ -87,20 +92,6 @@ Recorder.ERROR_MESSAGE = {
   }
 }
 
-/**
- * 设置或更新目标录制时长
- * @param duration
- */
-Recorder.prototype.setRecordingDuration = function (duration){
-  if(!duration){
-    return
-  }
-
-  this.recordingDuration = duration
-  this.gainFadeOutTime = this.recordingDuration * 0.15
-  console.log('set recording duration, ' + duration)
-}
-
 // Static Methods
 Recorder.isRecordingSupported = function () {
   return AudioContext && window.WebAssembly
@@ -127,6 +118,52 @@ Recorder.prototype.clearStream = function () {
 }
 
 /**
+ * 设置或更新目标录制时长
+ * @param duration
+ */
+Recorder.prototype.setRecordingDuration = function (duration){
+  if(!duration){
+    return
+  }
+
+  this.recordingDuration = duration
+  this.gainFadeOutTime = this.recordingDuration * 0.15
+  console.log('set recording duration, ' + duration)
+}
+
+Recorder.prototype.setRecordingGain = function (gain) {
+  this.config.recordingGain = gain
+
+  if (this.recordingGainNode && this.audioContext) {
+    this.recordingGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01)
+  }
+}
+
+Recorder.prototype.setMonitorGain = function (gain) {
+  this.config.monitorGain = gain
+
+  if (this.monitorGainNode && this.audioContext) {
+    this.monitorGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01)
+  }
+}
+
+/**
+ * 声音渐弱处理
+ */
+Recorder.prototype.setRecordingGainFadeOut = function (timeLeft){
+  console.log('set recording gain fade out, time left ' + timeLeft)
+  if (this.recordingGainNode && this.audioContext) {
+    this.recordingGainNode.gain.setValueAtTime(1, this.audioContext.currentTime)
+
+    // 1.值的逐渐指数变化。更改从为上一个事件指定的时间开始，然后按照指数上升到 value 参数中给定的新值，并在 endTime 参数中给定的时间达到新值。
+    // this.recordingGainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + timeLeft)
+
+    // 2.值的逐渐线性变化。更改从为上一个事件指定的时间开始，然后线性增加到 value 参数中给定的新值，并在 endTime 参数中给定的时间达到新值。
+    this.recordingGainNode.gain.linearRampToValueAtTime(0.01, this.audioContext.currentTime + timeLeft)
+  }
+}
+
+/**
  * 处理onaudioprocess获取到的buffer数据
  * @param inputBuffer
  */
@@ -134,10 +171,11 @@ Recorder.prototype.encodeBuffers = function (inputBuffer) {
   if (this.state === 'recording') {
     let buffers = []
     for (let i = 0; i < inputBuffer.numberOfChannels; i++) {
-      buffers[i] = inputBuffer.getChannelData(i)
+      // buffers[i] = inputBuffer.getChannelData(i)
+      buffers.push(inputBuffer.getChannelData(i))
     }
 
-    this.encoder.postMessage({
+    this.worker.postMessage({
       command: 'encode',
       buffers: buffers
     })
@@ -171,6 +209,10 @@ Recorder.prototype.initAudioGraph = function () {
   let audioprocessTotalDuration = 0
 
   this.scriptProcessorNode.onaudioprocess = (e) => {
+    if (!This.recording){
+      console.warn('onaudioprocess recording false!!')
+      return
+    }
     if(!audioprocessDuration){
       audioprocessDuration = e.inputBuffer.duration
       console.log('get onaudioprocess trigger duration: ' + audioprocessDuration)
@@ -216,103 +258,39 @@ Recorder.prototype.initSourceNode = function (sourceNode) {
 }
 
 Recorder.prototype.loadWorker = function () {
-  if (!this.encoder) {
-    this.encoder = new window.Worker(this.config.encoderPath)
+  if (!this.worker) {
+    this.worker = new window.Worker(this.config.workerPath)
   }
 }
 
 Recorder.prototype.initWorker = function () {
-  let onPage = (this.config.streamPages ? this.streamPage : this.storePage).bind(this)
-
   this.recordedPages = []
   this.totalLength = 0
   this.loadWorker()
 
   return new Promise((resolve, reject) => {
     let callback = (e) => {
-      switch (e['data']['message']) {
+      switch (e.data.message) {
         case 'ready':
           resolve()
           break
         case 'page':
-          this.encodedSamplePosition = e['data']['samplePosition']
-          onPage(e['data']['page'])
+          this.storePage(e['data']['page'])
           break
         case 'done':
-          this.encoder.removeEventListener('message', callback)
+          this.worker.removeEventListener('message', callback)
           this.finish()
           break
       }
     }
 
-    this.encoder.addEventListener('message', callback)
-    this.encoder.postMessage(Object.assign({
+    this.worker.addEventListener('message', callback)
+    this.worker.postMessage(Object.assign({
       command: 'init',
       originalSampleRate: this.audioContext.sampleRate,
       wavSampleRate: this.audioContext.sampleRate
     }, this.config))
   })
-}
-
-Recorder.prototype.pause = function (flush) {
-  if (this.state === 'recording') {
-    this.state = 'paused'
-    if (flush && this.config.streamPages) {
-      let encoder = this.encoder
-      return new Promise((resolve, reject) => {
-        let callback = (e) => {
-          if (e['data']['message'] === 'flushed') {
-            encoder.removeEventListener('message', callback)
-            this.onpause()
-            resolve()
-          }
-        }
-        encoder.addEventListener('message', callback)
-        encoder.postMessage({ command: 'flush' })
-      })
-    }
-    this.onpause()
-    return Promise.resolve()
-  }
-}
-
-Recorder.prototype.resume = function () {
-  if (this.state === 'paused') {
-    this.state = 'recording'
-    this.onresume()
-  }
-}
-
-/**
- * 声音渐弱处理
- */
-Recorder.prototype.setRecordingGainFadeOut = function (timeLeft){
-  console.log('set recording gain fade out, time left ' + timeLeft)
-  if (this.recordingGainNode && this.audioContext) {
-    this.recordingGainNode.gain.setValueAtTime(1, this.audioContext.currentTime)
-
-    // 1.值的逐渐指数变化。更改从为上一个事件指定的时间开始，然后按照指数上升到 value 参数中给定的新值，并在 endTime 参数中给定的时间达到新值。
-    // this.recordingGainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + timeLeft)
-
-    // 2.值的逐渐线性变化。更改从为上一个事件指定的时间开始，然后线性增加到 value 参数中给定的新值，并在 endTime 参数中给定的时间达到新值。
-    this.recordingGainNode.gain.linearRampToValueAtTime(0.01, this.audioContext.currentTime + timeLeft)
-  }
-}
-
-Recorder.prototype.setRecordingGain = function (gain) {
-  this.config.recordingGain = gain
-
-  if (this.recordingGainNode && this.audioContext) {
-    this.recordingGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01)
-  }
-}
-
-Recorder.prototype.setMonitorGain = function (gain) {
-  this.config.monitorGain = gain
-
-  if (this.monitorGainNode && this.audioContext) {
-    this.monitorGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01)
-  }
 }
 
 Recorder.prototype.start = function (sourceNode, recorderStopHandler) {
@@ -321,18 +299,16 @@ Recorder.prototype.start = function (sourceNode, recorderStopHandler) {
     this.initAudioContext(sourceNode)
     this.initAudioGraph()
 
-    this.encodedSamplePosition = 0
-
     return Promise.all([this.initSourceNode(sourceNode), this.initWorker()]).then((results) => {
       if (!results[0]) {
-        console.warn('this.recoderOptions: ', this.recoderOptions)
         this.recoderOptions && this.recoderOptions.errorCallBack(Recorder.ERROR_MESSAGE.ERROR_CODE_1008)
         return
       }
       this.sourceNode = results[0]
+      this.recording = true
       this.state = 'recording'
       this.onstart()
-      this.encoder.postMessage({ command: 'getHeaderPages' })
+      this.worker.postMessage({ command: 'getHeaderPages' })
       this.sourceNode.connect(this.monitorGainNode)
       this.sourceNode.connect(this.recordingGainNode)
     })
@@ -342,43 +318,35 @@ Recorder.prototype.start = function (sourceNode, recorderStopHandler) {
 Recorder.prototype.stop = function () {
   if (this.state !== 'inactive') {
     this.state = 'inactive'
+    this.recording = false
     this.monitorGainNode && this.monitorGainNode.disconnect()
     this.scriptProcessorNode && this.scriptProcessorNode.disconnect()
     this.recordingGainNode && this.recordingGainNode.disconnect()
     this.sourceNode && this.sourceNode.disconnect()
     this.clearStream()
 
-    let encoder = this.encoder
-    if (encoder) {
+    let worker = this.worker
+    if (worker) {
       return new Promise((resolve) => {
         let callback = (e) => {
           if (e['data']['message'] === 'done') {
-            encoder.removeEventListener('message', callback)
+            worker.removeEventListener('message', callback)
             resolve()
           }
         }
-        encoder.addEventListener('message', callback)
-        encoder.postMessage({ command: 'done' })
+        worker.addEventListener('message', callback)
+        worker.postMessage({ command: 'done' })
         if (!this.config.reuseWorker) {
-          encoder.postMessage({ command: 'close' })
+          worker.postMessage({ command: 'close' })
         }
       })
     } else {
-      if (Recorder.recoderOptions && Recorder.recoderOptions.errorCallback) {
-        Recorder.recoderOptions.errorCallback(Recorder.ERROR_MESSAGE.ERROR_CODE_1009())
+      if (this.recoderOptions && this.recoderOptions.errorCallback) {
+        this.recoderOptions.errorCallback(Recorder.ERROR_MESSAGE.ERROR_CODE_1009())
       }
     }
   }
   return Promise.resolve()
-}
-
-Recorder.prototype.destroyWorker = function () {
-  if (this.state === 'inactive') {
-    if (this.encoder) {
-      this.encoder.postMessage({ command: 'close' })
-      delete this.encoder
-    }
-  }
 }
 
 Recorder.prototype.storePage = function (page) {
@@ -386,23 +354,21 @@ Recorder.prototype.storePage = function (page) {
   this.totalLength += page.length
 }
 
-Recorder.prototype.streamPage = function (page) {
-  this.ondataavailable(page)
-}
-
-Recorder.prototype.finish = function () {
-  if (!this.config.streamPages) {
-    let outputData = new Uint8Array(this.totalLength)
+Recorder.prototype.finish = function (outputData) {
+  // to ogg
+  if(!outputData && this.recordedPages && this.recordedPages.length){
+    outputData = new Uint8Array(this.totalLength)
     this.recordedPages.reduce(function (offset, page) {
       outputData.set(page, offset)
       return offset + page.length
     }, 0)
-
-    this.ondataavailable(outputData)
   }
+
+  this.ondataavailable(outputData)
+
   this.onstop()
   if (!this.config.reuseWorker) {
-    delete this.encoder
+    delete this.worker
   }
 }
 

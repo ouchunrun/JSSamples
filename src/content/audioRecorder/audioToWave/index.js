@@ -1,6 +1,4 @@
 
-// shim for AudioContext when it's not avb.
-let AudioContext = window.AudioContext || window.webkitAudioContext;
 let progressShow = document.getElementById('progress')
 let audioFadeOut = document.getElementById('audioFadeOut')
 let recordingDurationInput = document.querySelector('div.duration > input[type=range]')
@@ -38,11 +36,8 @@ uploadFile.onchange = function () {
     encoderWave({
         file: uploadFile,
         duration: duration,   // 文件录制时长
+        encoderType: 'wav',
         audioFadeOut: audioFadeOut.checked,
-        // monitorGain: 0,
-        // recordingGain: 1,
-        // numberOfChannels: 1,
-        // encoderSampleRate: 8000,
         desiredSampleRate: 8000,
         encoderWorkerPath: './toWave/waveEncoderWorker.js',
 
@@ -80,4 +75,6 @@ function createDownloadLink(blob) {
     downLoadLink.href = url;
     downLoadLink.download = new Date().toLocaleString() + '.wav'
     downLoadLink.innerHTML = '<br>' + '[' + new Date().toLocaleString() + '] ' + '.wav'
+
+    recorderLists.appendChild(downLoadLink)
 }
