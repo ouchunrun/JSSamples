@@ -1,7 +1,7 @@
 
 // shim for AudioContext when it's not avb.
 let AudioContext = window.AudioContext || window.webkitAudioContext;
-
+let progressShow = document.getElementById('progress')
 let audioFadeOut = document.getElementById('audioFadeOut')
 let recordingDurationInput = document.querySelector('div.duration > input[type=range]')
 /**
@@ -48,7 +48,9 @@ uploadFile.onchange = function () {
 
         progressCallback: function (data){
             if(data.state === 'recording'){
+                progressShow.innerHTML = Math.round(data.percent * 100);
             }else if(data.state === 'done'){
+                progressShow.innerHTML = '100';
                 console.log('recorder complete!')
             }
         },
