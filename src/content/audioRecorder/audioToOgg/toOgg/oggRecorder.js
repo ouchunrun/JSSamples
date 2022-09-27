@@ -295,6 +295,8 @@ Recorder.prototype.initWorker = function () {
 
 Recorder.prototype.start = function (sourceNode, recorderStopHandler) {
   if (this.state === 'inactive') {
+    this.recording = true
+    this.state = 'recording'
     this.recorderStopHandler = recorderStopHandler
     this.initAudioContext(sourceNode)
     this.initAudioGraph()
@@ -305,8 +307,6 @@ Recorder.prototype.start = function (sourceNode, recorderStopHandler) {
         return
       }
       this.sourceNode = results[0]
-      this.recording = true
-      this.state = 'recording'
       this.onstart()
       this.worker.postMessage({ command: 'getHeaderPages' })
       this.sourceNode.connect(this.monitorGainNode)
