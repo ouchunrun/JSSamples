@@ -45,7 +45,7 @@ uploadFile.onchange = function () {
         recordingGain: 1,
         numberOfChannels: 1,
         desiredSampleRate: 16000,    // Desired encoding sample rate. Audio will be resampled
-        encoderWorkerPath: './to-ogg-worker/encoderWorker.js',
+        encoderWorkerPath: './toOgg/encoderWorker.js',
 
         /**
          * 进度处理

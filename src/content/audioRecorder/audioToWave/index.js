@@ -44,7 +44,7 @@ uploadFile.onchange = function () {
         // numberOfChannels: 1,
         // encoderSampleRate: 8000,
         desiredSampleRate: 8000,
-        encoderWorkerPath: './js/waveEncoderWorker.js',
+        encoderWorkerPath: './toWave/waveEncoderWorker.js',
 
         progressCallback: function (data){
             if(data.state === 'recording'){
