@@ -261,6 +261,8 @@ Recorder.prototype.loadWorker = function () {
 
 Recorder.prototype.initWorker = function (){
     let This = this
+    this.recordedPages = []
+    this.totalLength = 0
     this.loadWorker()
 
     return new Promise((resolve, reject) => {
