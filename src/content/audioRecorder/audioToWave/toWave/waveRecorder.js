@@ -223,8 +223,16 @@ Recorder.prototype.initAudioGraph = function (){
                 This.recorderStopHandler({ state: 'running', totalDuration: audioprocessTotalDuration })
             }
 
-            if (This.fadeOutEnabled && !This.fadeOutBeenSet && timeLeft <= This.gainFadeOutTime) {
-                console.log('set audio fade out')
+            if (This.fadeOutEnabled && !This.fadeOutBeenSet && (timeLeft <= This.gainFadeOutTime || This.fadeOutTime)) {
+                console.warn('set audio fade out')
+                if(This.fadeOutTime){
+                    // onaudioprocess 每次触发时的时长间隔 * 剩余触发时间
+                    timeLeft = audioprocessDuration * This.remainingTimes
+                    console.log('audioprocessTotalDuration:', audioprocessTotalDuration)
+                    console.log('This.remainingTimes:', This.remainingTimes)
+                    console.log('timeLeft:', timeLeft)
+                }
+
                 This.setRecordingGainFadeOut(timeLeft)
                 This.fadeOutBeenSet = true
             }
@@ -278,6 +286,15 @@ Recorder.prototype.initWorker = function (){
                     this.worker.removeEventListener('message', callback)
                     This.finish(e.data.data)
                     break
+                case 'fadeOutTime':
+                    This.fadeOutTime = true
+                    This.remainingTimes = e.data.remainingTimes
+                    break
+                case 'fileExceedsLimit':
+                    if(This.recorderStopHandler){
+                        This.recorderStopHandler({ state: 'stop', fileExceedsLimit: true})
+                    }
+                    break
                 default:
                     console.warn('worker e.data.command:', e.data.command)
                     break
@@ -288,7 +305,8 @@ Recorder.prototype.initWorker = function (){
         this.worker.postMessage(Object.assign({
             command: 'init',
             originalSampleRate: this.audioContext.sampleRate,
-            wavSampleRate: this.audioContext.sampleRate
+            wavSampleRate: this.audioContext.sampleRate,
+            fileSizeLimit: false  // 是否限制转换后的文件大小
         }, this.config))
     })
 }

@@ -114,7 +114,7 @@ function encoderWave(data){
             let currentTime = res.totalDuration
             if (res.state === 'stop') {
                 console.log('recorder.stop')
-                data.progressCallback({ state: 'done', percent: 1 })
+                data.progressCallback({ state: 'done', percent: 1, fileExceedsLimit: res.fileExceedsLimit})
                 recorder.stop()
                 bufferSource && bufferSource.stop()
                 bufferSource = null

@@ -30,6 +30,10 @@ function WaveWorker(){
     this.desiredSampleRate = undefined     // 目标采样率
     this.numberOfChannels = undefined      // 采样通道。 1 = 单声道，2 = 立体声。默认为 1。最多支持 2 个通道。
     this.bitsPerSample = null
+    this.singleProcessSize = 0
+    this.fadeOutTime = false   // true 标识达到渐弱时间
+    this.fadeOutRatio = 0.15   // 渐弱比例
+    this.fileSizeLimit = false // 是否限制文件大小
 }
 
 WaveWorker.prototype.init = function (config){
@@ -38,6 +42,7 @@ WaveWorker.prototype.init = function (config){
     this.desiredSampleRate = config.desiredSampleRate || 8000
     this.numberOfChannels = config.numberOfChannels || 1
     this.bitsPerSample = config.bitsPerSample || 16
+    this.fileSizeLimit = config.fileSizeLimit || false
 
     this.initBuffers()
 }
@@ -69,6 +74,43 @@ WaveWorker.prototype.record = function (inputBuffer){
         this.recorderBuffers[channel].push(inputBuffer[channel])
     }
     this.recorderBufferLength += inputBuffer[0].length
+
+    // 计算已转换数据大小
+    this.convertedSizeCalculate()
+}
+
+/**
+ * 动态计算已转换的文件数据是否超出限制
+ * GXP16XX上ring.bin尺寸要求不超过 196608 Byte(192KB)
+ */
+WaveWorker.prototype.convertedSizeCalculate = function (){
+    let downSampledBuffer = this.getDownSampledBuffer()
+    // 计算转换文件大小
+    let fileLimit = 196608
+    let fileHeaderOfferSetLength = 64
+    let totalFileLength = fileHeaderOfferSetLength + downSampledBuffer.length * 2
+    let maxFileLength = fileLimit - fileHeaderOfferSetLength // 可转换的最大文件尺寸
+    let remainingSize = maxFileLength - totalFileLength  // 剩余转换尺寸
+
+    if(!this.singleProcessSize){  // onaudioprocess每次触发时的buffer大小
+        this.singleProcessSize = downSampledBuffer.length * 2
+    }
+
+    if(totalFileLength >= maxFileLength){
+        console.warn('File exceeds limit, stop converting!')
+        self.postMessage({
+            message: 'fileExceedsLimit'
+        })
+    }else if(remainingSize <= fileLimit * this.fadeOutRatio){  // 文件转换剩余百分之15时，设置音频渐弱
+        if(!this.fadeOutTime){
+            console.warn('File conversion remaining 15 percent~')
+            this.fadeOutTime = true
+            self.postMessage({
+                message: 'fadeOutTime',
+                remainingTimes: remainingSize / this.singleProcessSize,  // record剩余触发次数
+            })
+        }
+    }
 }
 
 WaveWorker.prototype.getBuffer = function (){
@@ -169,6 +211,30 @@ WaveWorker.prototype.downSampleBuffer = function (buffer, desiredSampleRate){
     return result
 }
 
+/**
+ * buffer 处理
+ * @returns {*}
+ */
+WaveWorker.prototype.getDownSampledBuffer = function (){
+    let This = this
+    let buffers = []
+    // 1.将recBuffers数组扁平化
+    for (let channel = 0; channel < This.numberOfChannels; channel++) {
+        buffers.push(This.mergeBuffers(This.recorderBuffers[channel], This.recorderBufferLength))
+    }
+    let interleaved
+    let downSampledBuffer
+    // 2.下采样
+    if (This.numberOfChannels === 2) {
+        interleaved = This.interleave(buffers[0], buffers[1])
+        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
+    } else {
+        interleaved = buffers[0]
+        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
+    }
+    return downSampledBuffer
+}
+
 WaveWorker.prototype.writeString = function (view, offset, string) {
     for (let i = 0; i < string.length; i++) {
         view.setUint8(offset + i, string.charCodeAt(i))
@@ -250,22 +316,21 @@ WaveWorker.prototype.encodeWAV = function (samples){
  * 生成导出数据
  */
 WaveWorker.prototype.exportWAV = function (){
-    let This = this
-    let buffers = []
-    for (let channel = 0; channel < This.numberOfChannels; channel++) {
-        buffers.push(This.mergeBuffers(This.recorderBuffers[channel], This.recorderBufferLength))
-    }
-    let interleaved
-    let downSampledBuffer
-    if (This.numberOfChannels === 2) {
-        interleaved = This.interleave(buffers[0], buffers[1])
-        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
-    } else {
-        interleaved = buffers[0]
-        downSampledBuffer = This.downSampleBuffer(interleaved, This.desiredSampleRate)
+    // 1.获取下采样数据
+    let downSampledBuffer = this.getDownSampledBuffer()
+
+    // 2.计算文件尺寸是否超出限制
+    let fileLimit = 196608
+    let fileHeaderOfferSetLength = 64
+    let totalFileLength = fileHeaderOfferSetLength + downSampledBuffer.length * 2
+    let maxFileLength = fileLimit - fileHeaderOfferSetLength // 除去头文件长度，文件内容不超过192KB-64
+    if(totalFileLength > maxFileLength){
+        console.warn('ring.bin尺寸要求不超过 196608 Byte(192KB)!')
+        downSampledBuffer = downSampledBuffer.slice(0, maxFileLength/2)
     }
 
-    let dataView = This.encodeWAV(downSampledBuffer)
+    // 3.添加文件头
+    let dataView = this.encodeWAV(downSampledBuffer)
     self.postMessage({
         message: 'done',
         data: dataView
