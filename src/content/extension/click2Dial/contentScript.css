@@ -1,0 +1,6 @@
+grpSpan {
+    text-decoration: underline;
+    cursor: pointer;
+    /*color: #2d65e7;*/
+    color: red;
+}
