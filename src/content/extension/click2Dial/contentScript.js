@@ -74,14 +74,8 @@ let contentIdentification = {
 	phoneAndEmailMatch: function (str){
 		const res = /(1[0-9]{2,10})|([0-9]{3,4})?[0-9]{7,8}|[\d\w]+\b@[a-zA-ZA-z0-9]+.[a-z]+/g; //匹配手机号或者固话,邮箱
 		str = str.replace(/\s|[(]|[)]|[（]|[）]|[-]*/g, ''); //去除字符串中所有空格、小括号和横杠
-		let result = str.match(res); //识别手机号或者固话（在字符串内检索指定的值，或找到一个或多个正则表达式的匹配）
-		if(result){
-			// for (let i = 0; i < result.length; i++) {
-			// 	let temp = result[i]
-			// 	str = str.replace(result[i], '<a href="tel:' + temp + '"  class="copy phone-num" style=" text-decoration: underline;color: #2878FF;">' + temp + '</a>');
-			// }
-		}
-		return result
+		 //识别手机号或者固话（在字符串内检索指定的值，或找到一个或多个正则表达式的匹配）
+		return str.match(res)
 	},
 
 	/**
@@ -180,32 +174,11 @@ let contentIdentification = {
 			if(matchList){
 				for (let i = 0; i < matchList.length; i++) {
 					let matchStr = matchList[i]
+					// 文本加密
 					tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
-					searchedElementList.push({ element: targetNode, newhtml: tagChars })
 				}
+				searchedElementList.push({ element: targetNode, newhtml: tagChars })
 			}
-
-
-			// tagChars = this.replaceNBSPChar(tagChars)
-			// if(this.regex.test(tagChars)){
-			// 	// 不处理prompt alert confirm弹框
-			// 	if (tagChars.indexOf('prompt(') > 0 || tagChars.indexOf('alert(') > 0 || tagChars.indexOf('confirm(') > 0) {
-			// 		console.log(tagChars + ' skipped: contains prompt alert confirm')
-			// 		return
-			// 	}
-			// 	let number = ''
-			// 	let actualNumber = ''
-			// 	tagChars.replace(this.regex, (replacement) => {
-			// 		number = replacement
-			// 		actualNumber = this.formatNumber(replacement)
-			// 	})
-			// 	// console.log('tagChars ', tagChars, ' 转换为数字 ', actualNumber, 'with replacement ', number)
-			// 	// TODO: 这里把目标字符串替换为加密字符串
-			// 	tagChars = tagChars.replace(number, '<grpphone>' + btoa(unescape(encodeURIComponent(number))) + '</grpphone>')
-			// 	searchedElementList.push({ element: targetNode, newhtml: tagChars })
-			// }else {
-			// 	// 筛选出不需要处理的部分
-			// }
 		}
 	},
 
@@ -246,67 +219,45 @@ let contentIdentification = {
 
 		let searchedElementList = []
 		this.searchElements(targetNode, searchedElementList)
-
 		console.log('searchedElementList:', searchedElementList)
-		const divEle = document.createElement('div')
-		let node
-		let text = ''
-		for (let j = 0; j < searchedElementList.length; j++) {
-			const searchedParentNode = searchedElementList[j].element.parentNode
-			// console.log('node:', node)
-			// console.log('text：', text)
-			// console.log('searchedParentNode:', searchedParentNode)
 
-			if ((node !== searchedParentNode && (text && node && (node.innerHTML = text),
-			searchedParentNode && (text = searchedParentNode.innerHTML),
-				(node = searchedParentNode)),
-				searchedElementList[j].element.data)
-			) {
-				// console.log('node 2222:', node)
-				// console.log('text 2222：', text)
-				// console.log('searchedParentNode 2222222:', searchedParentNode)
+		for (let i = 0; i < searchedElementList.length; i++){
+			// element 全是text节点，需要通过parentNode获取带DOM标签的内容
+			let searchedElement = searchedElementList[i]
+			let domNode = searchedElement.element
+			let textParentNode = domNode.parentNode
 
-
-				let n = searchedElementList[j].newhtml
-				// console.log('newhtml：', n)
-
-				n = n.replace(new RegExp('(?:<grptemp>)(.*?)(?:</grptemp>)', 'gm'), (e, t) =>
-					decodeURIComponent(escape(atob(t)))
-				)
-
-				// console.log('replace 1:', n)
-				n = n.replace(new RegExp('(?:<grpphone>)(.*?)(?:</grpphone>)', 'gm'), (e, t) => {
-					const n = decodeURIComponent(escape(atob(t)))
-					return This.replaceNBSPChar(n).replace(This.regex, (e) => This.phoneCallItem(e))
+			if(domNode.data){  // 文本存在数据
+				let newhtml = searchedElement.newhtml
+				// 1.把所有<grpphone></grpphone>包含的内容进行解密
+				newhtml = newhtml.replace(new RegExp('(?:<grpphone>)(.*?)(?:</grpphone>)', 'gm'), function (){
+					/**
+					 * arguments[0]是匹配到的子字符串
+					 * arguments[1]是匹配到的分组项
+					 * arguments[2]是匹配到的字符串的索引位置
+					 * arguments[3]是源字符串本身
+					 */
+					const decryptedStr = decodeURIComponent(escape(atob(arguments[1])))
+					return This.phoneCallItem(decryptedStr)
 				})
-				// console.log('replace 2:', n)
-				divEle.innerHTML = text
 
-				let outerHTMLWithReplace = text
-				divEle.childNodes.forEach((childNode) => {
-					if(childNode.nodeType !== 3 && childNode.outerHTML){
-						// outerHTML全部替换为*
+				// 2.获取除目标字符串之外的其他文本信息：
+				let outerHTMLWithReplace = textParentNode.innerHTML
+				textParentNode.childNodes.forEach((childNode) => {
+					if(childNode.nodeType !== 3 && childNode.outerHTML){  // nodeType: 3 为text文本节点
+						// outerHTML全部替换为*，outerHTML能够获取到带标签和属性等所有内容
 						outerHTMLWithReplace = outerHTMLWithReplace.replace(childNode.outerHTML, '*'.repeat(childNode.outerHTML.length))
 					}
 				})
+				const escapeData = This.escapeHtmlTagChars(domNode.data).replace(/\xa0/g, '&nbsp;')
+				let newhtmlStartIndex = outerHTMLWithReplace.indexOf(escapeData)
 
-				// 转义 HTML 标签字符
-				const escapeData = This.escapeHtmlTagChars(searchedElementList[j].element.data).replace(/\xa0/g, '&nbsp;')
-				// console.log('outerHTMLWithReplace:', outerHTMLWithReplace)
-				// console.log('escapeData:', escapeData)
-
-				let fromIndex = outerHTMLWithReplace.length
-				let position = outerHTMLWithReplace.lastIndexOf('</grpSpan>', fromIndex) // 先查找'</grpSpan>'结束标签的位置，从该位置再查找，防止在'<grpSpan>'标签里有相同的字符
-
-				let o = position === -1 ? outerHTMLWithReplace.indexOf(escapeData) : outerHTMLWithReplace.indexOf(escapeData, position)
-				if (o >= 0) {
-					const e = text.substring(0, o)
-					let t = text.substring(o + escapeData.length)
-					text = e + n + t
-
-					// console.log('e:', e)
-					// console.log('t:', t)
-					// console.log('text:', text)
+				// 3.更新Dom节点innerHTML值
+				if (newhtmlStartIndex >= 0) {
+					let originalPreContent =  textParentNode.innerHTML.substring(0, newhtmlStartIndex)  // 被替换字符串前面的内容
+					// newhtml: 被添加了grpSpan标签的内容
+					let originalEndContent =  textParentNode.innerHTML.substring(newhtmlStartIndex + escapeData.length) // 被替换字符串后面的内容
+					textParentNode.innerHTML = originalPreContent + newhtml + originalEndContent  // 更新节点innerHTML值
 				}
 			}
 		}
