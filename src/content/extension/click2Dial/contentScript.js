@@ -157,11 +157,70 @@ let contentIdentification = {
 	},
 
 	/**
+	 * 替换目标文本为自定义dom节点
+	 * @param searchedElement
+	 */
+	replaceNodeText: function (searchedElement){
+		let This = this
+		let domNode = searchedElement.element
+		let textParentNode = domNode.parentNode
+
+		if(domNode.data){  // 文本存在数据
+			let newhtml = searchedElement.newhtml
+			// 1.把所有<grpphone></grpphone>包含的内容进行解密
+			// 查找到的号码替换为自定义span标签
+			newhtml = newhtml.replace(new RegExp('(?:<grpphone>)(.*?)(?:</grpphone>)', 'gm'), function (){
+				/**
+				 * arguments[0]是匹配到的子字符串
+				 * arguments[1]是匹配到的分组项
+				 * arguments[2]是匹配到的字符串的索引位置
+				 * arguments[3]是源字符串本身
+				 */
+				const decryptedStr = decodeURIComponent(escape(atob(arguments[1])))
+				return This.phoneCallItem(decryptedStr)
+			})
+
+			// 查找到的邮箱查询到号码后，替换为自定义标签
+			let email
+			newhtml = newhtml.replace(new RegExp('(?:<grpemail>)(.*?)(?:</grpemail>)', 'gm'), function (){
+				email = decodeURIComponent(escape(atob(arguments[1])))
+				return ''
+			})
+			if(email){
+				newhtml = newhtml.replace(new RegExp('(?:<grpCallNumber>)(.*?)(?:</grpCallNumber>)', 'gm'), function (){
+					let callNumber = decodeURIComponent(escape(atob(arguments[1])))
+					return This.phoneCallItemWithEmail(email, callNumber)
+				})
+			}
+
+			// 2.获取除目标字符串之外的其他文本信息：
+			let outerHTMLWithReplace = textParentNode.innerHTML
+			textParentNode.childNodes.forEach((childNode) => {
+				if(childNode.nodeType !== 3 && childNode.outerHTML){  // nodeType: 3 为text文本节点
+					// outerHTML全部替换为*，outerHTML能够获取到带标签和属性等所有内容
+					outerHTMLWithReplace = outerHTMLWithReplace.replace(childNode.outerHTML, '*'.repeat(childNode.outerHTML.length))
+				}
+			})
+
+			const escapeData = This.escapeHtmlTagChars(domNode.data).replace(/\xa0/g, '&nbsp;')
+			let newhtmlStartIndex = outerHTMLWithReplace.indexOf(escapeData)
+
+			// 3.更新Dom节点innerHTML值
+			if (newhtmlStartIndex >= 0) {
+				let originalPreContent =  textParentNode.innerHTML.substring(0, newhtmlStartIndex)  // 被替换字符串前面的内容
+				// newhtml: 被添加了grpSpan标签的内容
+				let originalEndContent =  textParentNode.innerHTML.substring(newhtmlStartIndex + escapeData.length) // 被替换字符串后面的内容
+				textParentNode.innerHTML = originalPreContent + newhtml + originalEndContent  // 更新节点innerHTML值
+			}
+		}
+	},
+
+	/**
 	 * 处理文本
 	 * @param targetNode
-	 * @param searchedElementList
 	 */
-	parseNodeText: function (targetNode, searchedElementList){
+	parseNodeText: function (targetNode){
+		let searchedElement
 		let tagChars = this.escapeHtmlTagChars(targetNode.nodeValue)
 		if (tagChars) {
 			if (this.regexURL.test(tagChars)) { 	// 忽略URL
@@ -182,21 +241,21 @@ let contentIdentification = {
 			// let matchList = this.phoneAndEmailMatch(tagChars)  // 获取所有能够匹配到的号码和邮箱列表
 			let matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
 			if(matchList){
-				console.log('匹配到号码:', matchList)
+				// console.log('match number:', matchList)
 				for (let i = 0; i < matchList.length; i++) {
 					let matchStr = matchList[i]
 					// 文本加密
 					tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
 				}
-				searchedElementList.push({ element: targetNode, newhtml: tagChars })
+				searchedElement = { element: targetNode, newhtml: tagChars }
 			}else {
 				matchList = this.emailMatch(tagChars)
 				if(matchList){
-					console.log('匹配到邮箱:', matchList)
+					// console.log('match email:', matchList)
 					let numberFind = false
 					for (let i = 0; i < matchList.length; i++){
 						let matchStr = matchList[i]
-						let phoneNumber = '这里要使用邮箱根据ldap查询号码'
+						let phoneNumber = 'number from ldap'
 						if(phoneNumber){
 							numberFind = true
 							tagChars = tagChars.replace(
@@ -206,9 +265,13 @@ let contentIdentification = {
 						}
 					}
 					if(numberFind){
-						searchedElementList.push({ element: targetNode, newhtml: tagChars })
+						searchedElement = { element: targetNode, newhtml: tagChars }
 					}
 				}
+			}
+
+			if(searchedElement){
+				this.replaceNodeText(searchedElement)
 			}
 		}
 	},
@@ -220,10 +283,9 @@ let contentIdentification = {
 	 * Node.TEXT_NODE	    3	Element 或者 Attr 中实际的 文字
 	 * Node.COMMENT_NODE	8	一个 Comment 节点。
 	 * @param targetNode
-	 * @param searchedElementList
 	 * @returns {*[]}
 	 */
-	searchTextNode: function (targetNode, searchedElementList){
+	searchTextNode: function (targetNode){
 		targetNode.childNodes.forEach((node) => {
 			// nodeType 属性可用来区分不同类型的节点，比如元素,文本和注释。
 			const {nodeType} = node
@@ -232,14 +294,13 @@ let contentIdentification = {
 			// 8: Node.COMMENT_NODE,一个 Comment 节点。
 			if (nodeType !== 3 && nodeType !== 8 && this.ignoreHTMLDomList.indexOf(node?.tagName) === -1) {
 				// console.log(`search TextNode node: ${node}, nodeType: ${nodeType} nodeValue: ${node.nodeValue}, node tagName ${node?.tagName}`)
-				this.searchTextNode(node, searchedElementList)
+				this.searchTextNode(node)
 			}
 			if (nodeType === 3) {
 				// console.log(`parseNodeText node: ${node}, nodeType: ${nodeType} nodeValue: ${node.nodeValue}, node tagName ${node?.tagName}`)
-				this.parseNodeText(node, searchedElementList)
+				this.parseNodeText(node)
 			}
 		})
-		return searchedElementList
 	},
 
 	/**
@@ -253,63 +314,7 @@ let contentIdentification = {
 		}
 
 		// 1.查找目标dom.nodeType = 3 的文本节点
-		let searchedElementList = []
-		this.searchTextNode(targetNode, searchedElementList)
-		console.log('searchedElementList:', searchedElementList)
-		for (let i = 0; i < searchedElementList.length; i++){
-			// element 全是text节点，需要通过parentNode获取带DOM标签的内容
-			let searchedElement = searchedElementList[i]
-			let domNode = searchedElement.element
-			let textParentNode = domNode.parentNode
-
-			if(domNode.data){  // 文本存在数据
-				let newhtml = searchedElement.newhtml
-				// 1.把所有<grpphone></grpphone>包含的内容进行解密
-				// 查找到的号码替换为自定义span标签
-				newhtml = newhtml.replace(new RegExp('(?:<grpphone>)(.*?)(?:</grpphone>)', 'gm'), function (){
-					/**
-					 * arguments[0]是匹配到的子字符串
-					 * arguments[1]是匹配到的分组项
-					 * arguments[2]是匹配到的字符串的索引位置
-					 * arguments[3]是源字符串本身
-					 */
-					const decryptedStr = decodeURIComponent(escape(atob(arguments[1])))
-					return This.phoneCallItem(decryptedStr)
-				})
-
-				// 查找到的邮箱查询到号码后，替换为自定义标签
-				let email
-				newhtml = newhtml.replace(new RegExp('(?:<grpemail>)(.*?)(?:</grpemail>)', 'gm'), function (){
-					email = decodeURIComponent(escape(atob(arguments[1])))
-					return ''
-				})
-				if(email){
-					newhtml = newhtml.replace(new RegExp('(?:<grpCallNumber>)(.*?)(?:</grpCallNumber>)', 'gm'), function (){
-						let callNumber = decodeURIComponent(escape(atob(arguments[1])))
-						return This.phoneCallItemWithEmail(email, callNumber)
-					})
-				}
-
-				// 2.获取除目标字符串之外的其他文本信息：
-				let outerHTMLWithReplace = textParentNode.innerHTML
-				textParentNode.childNodes.forEach((childNode) => {
-					if(childNode.nodeType !== 3 && childNode.outerHTML){  // nodeType: 3 为text文本节点
-						// outerHTML全部替换为*，outerHTML能够获取到带标签和属性等所有内容
-						outerHTMLWithReplace = outerHTMLWithReplace.replace(childNode.outerHTML, '*'.repeat(childNode.outerHTML.length))
-					}
-				})
-				const escapeData = This.escapeHtmlTagChars(domNode.data).replace(/\xa0/g, '&nbsp;')
-				let newhtmlStartIndex = outerHTMLWithReplace.indexOf(escapeData)
-
-				// 3.更新Dom节点innerHTML值
-				if (newhtmlStartIndex >= 0) {
-					let originalPreContent =  textParentNode.innerHTML.substring(0, newhtmlStartIndex)  // 被替换字符串前面的内容
-					// newhtml: 被添加了grpSpan标签的内容
-					let originalEndContent =  textParentNode.innerHTML.substring(newhtmlStartIndex + escapeData.length) // 被替换字符串后面的内容
-					textParentNode.innerHTML = originalPreContent + newhtml + originalEndContent  // 更新节点innerHTML值
-				}
-			}
-		}
+		this.searchTextNode(targetNode)
 
 		// 2.处理超连接
 		const anchorTagList = targetNode.getElementsByTagName('A')
