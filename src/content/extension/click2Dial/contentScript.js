@@ -24,8 +24,6 @@ let contentIdentification = {
 		'rect',
 		'clipPath',
 	],
-	phoneCallProtocolList: ['tel://', 'callto://', 'wavecallto://', 'tel:', 'callto:', 'wavecallto:'],
-	regex: /([(])?([+]?)[-()]*[ ]?([0-9]{1,4})([)])?[- ()]*([0-9]{1,4})[- ()\/]*([0-9]{1,4})[- ]*([0-9]{0,4})[- ]*([0-9]{0,4})[- ]*([0-9]{0,4})[- ]*([0-9]{0,4})($|\s|[;,()（）；\s])/g,
 	regexIP: new RegExp('((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])($|\\s|[;,])', 'g'),
 	regexURL: new RegExp('http[s]?:\\/\\/\\S*(\\s|$)', 'g'),
 	regexDate: [
@@ -35,36 +33,36 @@ let contentIdentification = {
 	],
 
 	/**
-	 * 验证手机号，处理规则：
+	 * 匹配手机号，处理规则：
 	 * 1--以1为开头；
 	 * 2--第二位可为3,4,5,7,8,中的任意一位；
 	 * 3--最后以0-9的9个整数结尾。
-	 * @param poneInput
+	 * @param str
 	 * @returns {boolean}
 	 */
-	isPoneAvailable: function(poneInput) {
-		let res = /^[1][3,4,5,7,8][0-9]{9}$/
-		return res.test(poneInput)
+	poneMatch: function(str) {
+		let reg = /[1][3,4,5,7,8][0-9]{9}/g
+		return str.match(reg)
 	},
 
 	/**
-	 * 判断是否为电话号码
-	 * @param tel
+	 * 匹配电话号码
+	 * @param str
 	 * @returns {boolean}
 	 */
-	isTelAvailable: function (tel){
-		let reg = /^(([0\+]\d{2,3}-)?(0\d{2,3})-)(\d{7,8})(-(\d{3,}))?$/
-		return reg.test(tel)
+	telMatch: function (str){
+		let reg = /(([0\+]\d{2,3}-)?(0\d{2,3})-)(\d{7,8})(-(\d{3,}))?/g
+		return str.match(reg)
 	},
 
 	/**
-	 * 验证邮箱
-	 * @param emailInput
+	 * 匹配邮箱
+	 * @param str
 	 * @returns {boolean}
 	 */
-	isEmailAvailable: function (emailInput){
-		let reg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/
-		return reg.test(emailInput)
+	emailMatch: function (str){
+		let reg = /([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}/g
+		return str.match(reg)
 	},
 
 	/**
@@ -148,6 +146,16 @@ let contentIdentification = {
 	},
 
 	/**
+	 * 根据邮箱查找到的电话号码
+	 * @param email 邮箱
+	 * @param number 号码
+	 * @returns {`<grpSpan grphref="${*}" title="${string}">${string}</grpSpan>`}
+	 */
+	phoneCallItemWithEmail: function (email, number) {
+		return `<grpSpan grphref="${this.formatNumber(number)}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
+	},
+
+	/**
 	 * 处理文本
 	 * @param targetNode
 	 * @param searchedElementList
@@ -170,14 +178,36 @@ let contentIdentification = {
 				}
 			}
 
-			let matchList = this.phoneAndEmailMatch(tagChars)  // 获取所有能够匹配到的号码和邮箱列表
+			// let matchList = this.phoneAndEmailMatch(tagChars)  // 获取所有能够匹配到的号码和邮箱列表
+			let matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
 			if(matchList){
+				console.log('匹配到号码:', matchList)
 				for (let i = 0; i < matchList.length; i++) {
 					let matchStr = matchList[i]
 					// 文本加密
 					tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
 				}
 				searchedElementList.push({ element: targetNode, newhtml: tagChars })
+			}else {
+				matchList = this.emailMatch(tagChars)
+				if(matchList){
+					console.log('匹配到邮箱:', matchList)
+					let numberFind = false
+					for (let i = 0; i < matchList.length; i++){
+						let matchStr = matchList[i]
+						let phoneNumber = '这里要使用邮箱根据ldap查询号码'
+						if(phoneNumber){
+							numberFind = true
+							tagChars = tagChars.replace(
+								matchStr,
+								'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
+							)
+						}
+					}
+					if(numberFind){
+						searchedElementList.push({ element: targetNode, newhtml: tagChars })
+					}
+				}
 			}
 		}
 	},
@@ -211,7 +241,7 @@ let contentIdentification = {
 	 * 获取 nodeType === 1 的节点
 	 * @param targetNode
 	 */
-	parseElementNode: function (targetNode){
+	pageScan: function (targetNode){
 		let This = this
 		if(this.urlToIgnored()){
 			return
@@ -230,6 +260,7 @@ let contentIdentification = {
 			if(domNode.data){  // 文本存在数据
 				let newhtml = searchedElement.newhtml
 				// 1.把所有<grpphone></grpphone>包含的内容进行解密
+				// 查找到的号码替换为自定义span标签
 				newhtml = newhtml.replace(new RegExp('(?:<grpphone>)(.*?)(?:</grpphone>)', 'gm'), function (){
 					/**
 					 * arguments[0]是匹配到的子字符串
@@ -240,6 +271,19 @@ let contentIdentification = {
 					const decryptedStr = decodeURIComponent(escape(atob(arguments[1])))
 					return This.phoneCallItem(decryptedStr)
 				})
+
+				// 查找到的邮箱查询到号码后，替换为自定义标签
+				let email
+				newhtml = newhtml.replace(new RegExp('(?:<grpemail>)(.*?)(?:</grpemail>)', 'gm'), function (){
+					email = decodeURIComponent(escape(atob(arguments[1])))
+					return ''
+				})
+				if(email){
+					newhtml = newhtml.replace(new RegExp('(?:<grpCallNumber>)(.*?)(?:</grpCallNumber>)', 'gm'), function (){
+						let callNumber = decodeURIComponent(escape(atob(arguments[1])))
+						return This.phoneCallItemWithEmail(email, callNumber)
+					})
+				}
 
 				// 2.获取除目标字符串之外的其他文本信息：
 				let outerHTMLWithReplace = textParentNode.innerHTML
@@ -270,31 +314,17 @@ let contentIdentification = {
 	handleClick2DialNumber: function (selectedText){
 		console.log('handleClick2DialNumber:', selectedText)
 	},
-
-	/**
-	 * 匹配电话号码和邮箱
-	 * @param element
-	 */
-	matchTelAndEmail: function (element){
-		// 根据正则完全匹配，后续通过话机提供的接口获取匹配规则
-		let value = element.innerText
-		console.log('matchTelAndEmail value:', value)
-		if(this.isPoneAvailable(value) || this.isTelAvailable(value)){
-			// 1.匹配手机号或者固话时，将纯文本替换为带自定义标签的节点，文本着色、显示下划线，并在鼠标hover时提示可以呼叫
-			element.innerHTML = `<grpSpan grphref="${value}" title="${this.phoneCallTitle(value)}">${value}</grpSpan>`
-		}else if(this.isEmailAvailable(value)){
-			// 2.匹配邮箱时，根据插件获取到的ucm ldap通讯录查询号码，存在号码则同上处理
-		}
-	},
 }
 
+/**
+ * 页面dom节点扫描
+ */
 window.onload = function (){
 	let bodyCheck = setInterval(function (){
 		if(document.body){
 			clearInterval(bodyCheck)
 			bodyCheck = null
-			contentIdentification.parseElementNode(document.body)
-			// onInit()
+			contentIdentification.pageScan(document.body)
 		}else {
 			console.log('document.body 还未获取到')
 		}
