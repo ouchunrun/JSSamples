@@ -34,6 +34,57 @@ let contentIdentification = {
 	],
 
 	/**
+	 * 创建并返回一个新的观察器，它会在触发指定 DOM 事件时，调用指定的回调函数。
+	 * MutationObserver 对 DOM 的观察不会立即启动；而必须先调用 observe() 方法来确定，要监听哪一部分的 DOM 以及要响应哪些更改.
+	 *
+	 * 回调函数，每当被指定的节点或子树以及配置项有Dom变动时会被调用。
+	 * 回调函数拥有两个参数：一个是描述所有被触发改动的 MutationRecord 对象数组，另一个是调用该函数的MutationObserver 对象
+	 */
+	nodeObserver: new MutationObserver((mutationList) => {
+		// 当观察到变动时执行的回调函数
+		mutationList.forEach((mutation) => {
+			mutation.addedNodes.forEach((node) => {
+				const { tagName } = node
+				if ('A' === tagName) {
+					// console.log('Dynamic element "A" will be processed')
+					contentIdentification.tryReWriteAnchorTag(node)
+				} else if (contentIdentification.ignoreHTMLDomList.indexOf(tagName) >= 0) {
+					// console.log('Dynamic element ignored: ' + tagName)
+				} else {
+					// console.log('Dynamic element parsed: ' + tagName)
+					contentIdentification.urlToIgnored()
+					setTimeout(() => {
+						contentIdentification.detachObserver()
+						contentIdentification.pageScan(node)
+					}, 1000)
+				}
+			})
+		})
+	}),
+
+	/**
+	 * 启动节点变化观察器
+	 */
+	attachObserver: function (){
+		const targetNode = document.body
+		const observerOptions = {
+			attributes: !0, // 观察属性变动
+			childList: !0, // 观察目标子节点的变化，是否有添加或者删除
+			characterData: !0, // 观察节点或节点中包含的字符数据的更改
+			subtree: !0, // 观察后代节点，默认为 false
+		}
+		this.nodeObserver.observe(targetNode, observerOptions)
+	},
+
+	/**
+	 * 停止节点变化观察器
+	 */
+	detachObserver: function (){
+		// 停止观察
+		this.nodeObserver.disconnect()
+	},
+
+	/**
 	 * 匹配手机号，处理规则：
 	 * 1--以1为开头；
 	 * 2--第二位可为3,4,5,7,8,中的任意一位；
@@ -308,8 +359,7 @@ let contentIdentification = {
 	 * @param targetNode
 	 */
 	pageScan: function (targetNode){
-		let This = this
-		if(this.urlToIgnored()){
+		if(!targetNode || this.urlToIgnored()){
 			return
 		}
 
@@ -317,18 +367,21 @@ let contentIdentification = {
 		this.searchTextNode(targetNode)
 
 		// 2.处理超连接
-		const anchorTagList = targetNode.getElementsByTagName('A')
-		if (anchorTagList) {
-			for (let i = 0; i < anchorTagList.length; i++) {
-				try {
-					const anchorTag = anchorTagList[i]
-					this.tryReWriteAnchorTag(anchorTag)
-				} catch (e) {
-					// console.log(`tryReWriteAnchorTag: ${e}`)
+		if(targetNode.getElementsByTagName){
+			const anchorTagList = targetNode.getElementsByTagName('A')
+			if (anchorTagList) {
+				for (let i = 0; i < anchorTagList.length; i++) {
+					try {
+						const anchorTag = anchorTagList[i]
+						this.tryReWriteAnchorTag(anchorTag)
+					} catch (e) {
+						// console.log(`tryReWriteAnchorTag: ${e}`)
+					}
 				}
 			}
 		}
 
+		this.attachObserver()
 	},
 
 	/**
@@ -341,14 +394,14 @@ let contentIdentification = {
 		if (url) {
 			for (const item of this.phoneCallProtocolList) {
 				if (url && url.substr(0, item.length) === item) {
-					// detachObserver()
+					this.detachObserver()
 					const phoneCallProtocol = url.substr(item.length)
 					console.log('phoneCallProtocol：', phoneCallProtocol)
 					targetNode.setAttribute('title', this.phoneCallTitle(phoneCallProtocol))
 					targetNode.setAttribute('href', 'javascript:void(0)')
 					// targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
 					targetNode.setAttribute('grpcallnumber', this.formatNumber(phoneCallProtocol))
-					// attachObserver()  // 重写完成后再重新设置观察器
+					this.attachObserver()  // 重写完成后再重新设置观察器
 					break
 				}
 			}
@@ -370,10 +423,12 @@ let contentIdentification = {
 	 * @param e
 	 */
 	handleClick: function (e){
-		let callNumber = e.target.getAttribute('grpcallnumber')
-		console.log('get target call number: ', callNumber)
-		if(callNumber){
-			this.handleClick2DialNumber(callNumber)
+		if(e && e.target && e.target.getAttribute){
+			let callNumber = e.target.getAttribute('grpcallnumber')
+			console.log('get target call number: ', callNumber)
+			if(callNumber){
+				this.handleClick2DialNumber(callNumber)
+			}
 		}
 	},
 }
