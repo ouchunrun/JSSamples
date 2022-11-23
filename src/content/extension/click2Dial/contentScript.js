@@ -54,7 +54,6 @@ let contentIdentification = {
 					// console.log('Dynamic element parsed: ' + tagName)
 					contentIdentification.urlToIgnored()
 					setTimeout(() => {
-						contentIdentification.detachObserver()
 						contentIdentification.pageScan(node)
 					}, 1000)
 				}
@@ -274,6 +273,7 @@ let contentIdentification = {
 		let searchedElement
 		let tagChars = this.escapeHtmlTagChars(targetNode.nodeValue)
 		if (tagChars) {
+			this.detachObserver()
 			if (this.regexURL.test(tagChars)) { 	// 忽略URL
 				// console.log(tagChars + ' skipped: matches URL regex')
 				return;
@@ -324,6 +324,7 @@ let contentIdentification = {
 			if(searchedElement){
 				this.replaceNodeText(searchedElement)
 			}
+			this.attachObserver()
 		}
 	},
 
@@ -380,8 +381,6 @@ let contentIdentification = {
 				}
 			}
 		}
-
-		this.attachObserver()
 	},
 
 	/**
@@ -390,18 +389,19 @@ let contentIdentification = {
 	 * @returns {*}
 	 */
 	tryReWriteAnchorTag: function (targetNode) {
+		let This = this
 		const url = decodeURI(targetNode.getAttribute('href'))
 		if (url) {
 			for (const item of this.phoneCallProtocolList) {
 				if (url && url.substr(0, item.length) === item) {
-					this.detachObserver()
+					This.detachObserver()
 					const phoneCallProtocol = url.substr(item.length)
 					console.log('phoneCallProtocol：', phoneCallProtocol)
 					targetNode.setAttribute('title', this.phoneCallTitle(phoneCallProtocol))
 					targetNode.setAttribute('href', 'javascript:void(0)')
 					// targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
 					targetNode.setAttribute('grpcallnumber', this.formatNumber(phoneCallProtocol))
-					this.attachObserver()  // 重写完成后再重新设置观察器
+					This.attachObserver()  // 重写完成后再重新设置观察器
 					break
 				}
 			}
