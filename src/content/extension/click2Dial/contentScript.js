@@ -24,6 +24,7 @@ let contentIdentification = {
 		'rect',
 		'clipPath',
 	],
+	phoneCallProtocolList: ['tel://', 'callto://'],
 	regexIP: new RegExp('((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])($|\\s|[;,])', 'g'),
 	regexURL: new RegExp('http[s]?:\\/\\/\\S*(\\s|$)', 'g'),
 	regexDate: [
@@ -142,17 +143,17 @@ let contentIdentification = {
 	 * @returns {``}
 	 */
 	phoneCallItem: function (t) {
-		return `<grpSpan grphref="${this.formatNumber(t)}" title="${this.phoneCallTitle(t)}">${t}</grpSpan>`
+		return `<grpSpan grpcallnumber="${this.formatNumber(t)}" title="${this.phoneCallTitle(t)}">${t}</grpSpan>`
 	},
 
 	/**
 	 * 根据邮箱查找到的电话号码
 	 * @param email 邮箱
 	 * @param number 号码
-	 * @returns {`<grpSpan grphref="${*}" title="${string}">${string}</grpSpan>`}
+	 * @returns {``}
 	 */
 	phoneCallItemWithEmail: function (email, number) {
-		return `<grpSpan grphref="${this.formatNumber(number)}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
+		return `<grpSpan grpcallnumber="${this.formatNumber(number)}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
 	},
 
 	/**
@@ -213,12 +214,16 @@ let contentIdentification = {
 	},
 
 	/**
-	 * 查找目标dom节点
+	 * 查找目标dom.nodeType = 3 的文本节点
+	 * Node.ELEMENT_NODE	1	一个 元素 节点，例如 <p> 和 <div>。
+	 * Node.ATTRIBUTE_NODE	2	元素 的耦合 属性。
+	 * Node.TEXT_NODE	    3	Element 或者 Attr 中实际的 文字
+	 * Node.COMMENT_NODE	8	一个 Comment 节点。
 	 * @param targetNode
 	 * @param searchedElementList
 	 * @returns {*[]}
 	 */
-	searchElements: function (targetNode, searchedElementList){
+	searchTextNode: function (targetNode, searchedElementList){
 		targetNode.childNodes.forEach((node) => {
 			// nodeType 属性可用来区分不同类型的节点，比如元素,文本和注释。
 			const {nodeType} = node
@@ -226,8 +231,8 @@ let contentIdentification = {
 			// 3: Node.TEXT_NODE,Element或者Attr中实际的文字
 			// 8: Node.COMMENT_NODE,一个 Comment 节点。
 			if (nodeType !== 3 && nodeType !== 8 && this.ignoreHTMLDomList.indexOf(node?.tagName) === -1) {
-				// console.log(`searchElements node: ${node}, nodeType: ${nodeType} nodeValue: ${node.nodeValue}, node tagName ${node?.tagName}`)
-				this.searchElements(node, searchedElementList)
+				// console.log(`search TextNode node: ${node}, nodeType: ${nodeType} nodeValue: ${node.nodeValue}, node tagName ${node?.tagName}`)
+				this.searchTextNode(node, searchedElementList)
 			}
 			if (nodeType === 3) {
 				// console.log(`parseNodeText node: ${node}, nodeType: ${nodeType} nodeValue: ${node.nodeValue}, node tagName ${node?.tagName}`)
@@ -247,10 +252,10 @@ let contentIdentification = {
 			return
 		}
 
+		// 1.查找目标dom.nodeType = 3 的文本节点
 		let searchedElementList = []
-		this.searchElements(targetNode, searchedElementList)
+		this.searchTextNode(targetNode, searchedElementList)
 		console.log('searchedElementList:', searchedElementList)
-
 		for (let i = 0; i < searchedElementList.length; i++){
 			// element 全是text节点，需要通过parentNode获取带DOM标签的内容
 			let searchedElement = searchedElementList[i]
@@ -305,14 +310,66 @@ let contentIdentification = {
 				}
 			}
 		}
+
+		// 2.处理超连接
+		const anchorTagList = targetNode.getElementsByTagName('A')
+		if (anchorTagList) {
+			for (let i = 0; i < anchorTagList.length; i++) {
+				try {
+					const anchorTag = anchorTagList[i]
+					this.tryReWriteAnchorTag(anchorTag)
+				} catch (e) {
+					// console.log(`tryReWriteAnchorTag: ${e}`)
+				}
+			}
+		}
+
+	},
+
+	/**
+	 * 处理带有tel等呼叫表示的超链接标签
+	 * @param targetNode
+	 * @returns {*}
+	 */
+	tryReWriteAnchorTag: function (targetNode) {
+		const url = decodeURI(targetNode.getAttribute('href'))
+		if (url) {
+			for (const item of this.phoneCallProtocolList) {
+				if (url && url.substr(0, item.length) === item) {
+					// detachObserver()
+					const phoneCallProtocol = url.substr(item.length)
+					console.log('phoneCallProtocol：', phoneCallProtocol)
+					targetNode.setAttribute('title', this.phoneCallTitle(phoneCallProtocol))
+					targetNode.setAttribute('href', 'javascript:void(0)')
+					// targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
+					targetNode.setAttribute('grpcallnumber', this.formatNumber(phoneCallProtocol))
+					// attachObserver()  // 重写完成后再重新设置观察器
+					break
+				}
+			}
+		}
+
+		return targetNode
 	},
 
 	/**
 	 * 处理点击呼叫的号码
-	 * @param selectedText
+	 * @param number
 	 */
-	handleClick2DialNumber: function (selectedText){
-		console.log('handleClick2DialNumber:', selectedText)
+	handleClick2DialNumber: function (number){
+		console.log('handleClick2DialNumber:', number)
+	},
+
+	/**
+	 * 处理页面点击事件
+	 * @param e
+	 */
+	handleClick: function (e){
+		let callNumber = e.target.getAttribute('grpcallnumber')
+		console.log('get target call number: ', callNumber)
+		if(callNumber){
+			this.handleClick2DialNumber(callNumber)
+		}
 	},
 }
 
@@ -330,4 +387,9 @@ window.onload = function (){
 		}
 	}, 1000)
 
+
+	// 捕获元素点击事件
+	document.addEventListener('click', function (e){
+		contentIdentification.handleClick(e)
+	}, { capture: true })
 }
