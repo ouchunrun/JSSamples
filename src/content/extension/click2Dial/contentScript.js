@@ -1,4 +1,35 @@
 /*******************************************************************************************************************/
+/******************************************* Content-script 和 backgroundJS 间的通信处理*******************************/
+/*******************************************************************************************************************/
+let grpDialingApi = {}
+
+if(chrome){  // chrome
+	grpDialingApi.webExtension = chrome
+}else if(browser){  // firefox
+	grpDialingApi.webExtension = browser
+}
+
+/**
+ *  发送消息给背景页
+ * @param message 内容
+ * @param callback 回调
+ */
+function sendMessageToBackgroundJS(message, callback){
+	if (chrome.runtime && chrome.runtime.sendMessage) {
+		if (chrome.app && typeof chrome.app.isInstalled !== "undefined") {
+			message.requestType = 'contentMessage2Background'
+			chrome.runtime.sendMessage(message, function (response) {
+				if (callback) {
+					callback(response)
+				}
+			});
+		} else {
+			// 当在扩展管理中心刷新或更新了某扩展，然后切换到浏览器某标签页的页面中直接使用该扩展时，扩展可能报错"Extension context invalidated"
+		}
+	}
+}
+
+/*******************************************************************************************************************/
 /***********************************************网页内容识别***********************************************************/
 /*******************************************************************************************************************/
 
@@ -398,7 +429,7 @@ let contentIdentification = {
 					const phoneCallProtocol = url.substr(item.length)
 					console.log('phoneCallProtocol：', phoneCallProtocol)
 					targetNode.setAttribute('title', this.phoneCallTitle(phoneCallProtocol))
-					targetNode.setAttribute('href', 'javascript:void(0)')
+					// targetNode.setAttribute('href', 'javascript:void(0)')
 					// targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
 					targetNode.setAttribute('grpcallnumber', this.formatNumber(phoneCallProtocol))
 					This.attachObserver()  // 重写完成后再重新设置观察器
@@ -425,8 +456,8 @@ let contentIdentification = {
 	handleClick: function (e){
 		if(e && e.target && e.target.getAttribute){
 			let callNumber = e.target.getAttribute('grpcallnumber')
-			console.log('get target call number: ', callNumber)
 			if(callNumber){
+				console.log('get target call number: ', callNumber)
 				this.handleClick2DialNumber(callNumber)
 			}
 		}
@@ -452,4 +483,24 @@ window.onload = function (){
 	document.addEventListener('click', function (e){
 		contentIdentification.handleClick(e)
 	}, { capture: true })
+
+	/***************************************************监听文本选中事件********************************************/
+	window.addEventListener('mouseup', function (e){
+		if(e.target.nodeName === 'GRPSPAN' || e.target.getAttribute('grpcallnumber')){
+			// 已添加自定义grpspan的内容不做处理
+			return
+		}
+
+		let selection = window.getSelection()
+		if(selection.anchorOffset !== selection.extentOffset){
+			console.log('selection:', selection.toString())
+			sendMessageToBackgroundJS({
+				cmd: 'contentScriptMenusCheck',
+				data: {
+					selectionText: selection.toString(),
+				}
+			})
+		}else {/*不存在选中内容*/}
+	})
+
 }

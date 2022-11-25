@@ -7,6 +7,11 @@
   {
     "default_title": "click-to-dial"
   },
+  "background": {
+      "scripts": [
+        "background.js"
+    ]
+  },
   "content_scripts":
   [
     {
@@ -33,6 +38,7 @@
     "tabs",
     "<all_urls>",
     "contextMenus",
+    "management",
     "nativeMessaging",
     "background",
     "notifications"
