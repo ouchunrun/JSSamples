@@ -180,8 +180,22 @@ function handleClick2DialNumber(info, tab){
     // 这里处理号码发起呼叫
     chrome.windows.create({
         url: chrome.runtime.getURL('popup.html'),
-        type:"panel",
-        width:300,
-        height:200
+        type: "popup",
+        width: 520,
+        height: 440,
+        left: 800,
     });
 }
+
+/**
+ * 点击扩展图标时打开popup页面
+ */
+chrome.browserAction.onClicked.addListener(function (){
+    chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type:"popup",
+        width: 520,
+        height: 440,
+        left: 800,
+    });
+})
