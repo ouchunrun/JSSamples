@@ -5,7 +5,9 @@
   "manifest_version": 2,
   "browser_action":
   {
-    "default_title": "click-to-dial"
+    "default_title": "click-to-dial",
+    "default_popup": "popup.html",
+    "default_icon": "popup.png"
   },
   "background": {
       "scripts": [
@@ -29,6 +31,15 @@
       "run_at": "document_start"
     }
   ],
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Q",
+        "mac": "MacCtrl+Shift+Q"
+      },
+      "description": "Opens popup page"
+    }
+  },
   "web_accessible_resources": ["*"],
   "permissions": [
     "webRequest",

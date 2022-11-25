@@ -176,5 +176,12 @@ function handleClick2DialNumber(info, tab){
     console.log('handleClick2DialNumber info:', info)
     console.log('handleClick2DialNumber tab：', tab)
     let selectionText = info.selectionText
+
     // 这里处理号码发起呼叫
+    chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type:"panel",
+        width:300,
+        height:200
+    });
 }

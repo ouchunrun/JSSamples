@@ -468,21 +468,21 @@ let contentIdentification = {
  * 页面dom节点扫描
  */
 window.onload = function (){
-	let bodyCheck = setInterval(function (){
-		if(document.body){
-			clearInterval(bodyCheck)
-			bodyCheck = null
-			contentIdentification.pageScan(document.body)
-		}else {
-			console.log('document.body 还未获取到')
-		}
-	}, 1000)
-
-
-	// 捕获元素点击事件
-	document.addEventListener('click', function (e){
-		contentIdentification.handleClick(e)
-	}, { capture: true })
+	// let bodyCheck = setInterval(function (){
+	// 	if(document.body){
+	// 		clearInterval(bodyCheck)
+	// 		bodyCheck = null
+	// 		contentIdentification.pageScan(document.body)
+	// 	}else {
+	// 		console.log('document.body 还未获取到')
+	// 	}
+	// }, 1000)
+	//
+	//
+	// // 捕获元素点击事件
+	// document.addEventListener('click', function (e){
+	// 	contentIdentification.handleClick(e)
+	// }, { capture: true })
 
 	/***************************************************监听文本选中事件********************************************/
 	window.addEventListener('mouseup', function (e){
