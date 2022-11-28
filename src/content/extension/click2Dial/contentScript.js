@@ -330,26 +330,27 @@ let contentIdentification = {
 					tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
 				}
 				searchedElement = { element: targetNode, newhtml: tagChars }
-			}else {
-				matchList = this.emailMatch(tagChars)
-				if(matchList){
-					// console.log('match email:', matchList)
-					let numberFind = false
-					for (let i = 0; i < matchList.length; i++){
-						let matchStr = matchList[i]
-						let phoneNumber = 'number from ldap'
-						if(phoneNumber){
-							numberFind = true
-							tagChars = tagChars.replace(
-								matchStr,
-								'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
-							)
-						}
-					}
-					if(numberFind){
-						searchedElement = { element: targetNode, newhtml: tagChars }
-					}
-				}
+			} else {
+				// TODO: 这里邮箱正则匹配存在问题!!!!!!!!
+				// matchList = this.emailMatch(tagChars)
+				// if(matchList){
+				// 	// console.log('match email:', matchList)
+				// 	let numberFind = false
+				// 	for (let i = 0; i < matchList.length; i++){
+				// 		let matchStr = matchList[i]
+				// 		let phoneNumber = 'number from ldap'
+				// 		if(phoneNumber){
+				// 			numberFind = true
+				// 			tagChars = tagChars.replace(
+				// 				matchStr,
+				// 				'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
+				// 			)
+				// 		}
+				// 	}
+				// 	if(numberFind){
+				// 		searchedElement = { element: targetNode, newhtml: tagChars }
+				// 	}
+				// }
 			}
 
 			if(searchedElement){
@@ -447,6 +448,12 @@ let contentIdentification = {
 	 */
 	handleClick2DialNumber: function (number){
 		console.log('handleClick2DialNumber:', number)
+		sendMessageToBackgroundJS({
+			cmd: 'contentScriptClick2Dial',
+			data: {
+				number: number,
+			}
+		})
 	},
 
 	/**
@@ -468,21 +475,19 @@ let contentIdentification = {
  * 页面dom节点扫描
  */
 window.onload = function (){
-	// let bodyCheck = setInterval(function (){
-	// 	if(document.body){
-	// 		clearInterval(bodyCheck)
-	// 		bodyCheck = null
-	// 		contentIdentification.pageScan(document.body)
-	// 	}else {
-	// 		console.log('document.body 还未获取到')
-	// 	}
-	// }, 1000)
-	//
-	//
-	// // 捕获元素点击事件
-	// document.addEventListener('click', function (e){
-	// 	contentIdentification.handleClick(e)
-	// }, { capture: true })
+	let bodyCheck = setInterval(function (){
+		if(document.body){
+			clearInterval(bodyCheck)
+			bodyCheck = null
+			contentIdentification.pageScan(document.body)
+		}
+	}, 1000)
+
+
+	// 捕获元素点击事件
+	document.addEventListener('click', function (e){
+		contentIdentification.handleClick(e)
+	}, { capture: true })
 
 	/***************************************************监听文本选中事件********************************************/
 	window.addEventListener('mouseup', function (e){

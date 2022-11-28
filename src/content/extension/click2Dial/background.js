@@ -143,6 +143,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         sendResponse({cmd: "backgroundMessage2ContentScript", status: "OK"});
 
         switch (request.cmd){
+            case 'contentScriptClick2Dial':
+                let phonenumber = request.data.number
+                handleClick2DialNumber(phonenumber)
+                break
             case 'contentScriptMenusCheck':
                 // 屏幕取词呼叫处理
                 console.log('收到内容页发送过来的消息：', request.data)
