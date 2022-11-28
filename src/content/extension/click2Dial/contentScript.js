@@ -55,7 +55,7 @@ let contentIdentification = {
 		'rect',
 		'clipPath',
 	],
-	phoneCallProtocolList: ['tel://', 'callto://'],
+	phoneCallProtocolList: ['tel:'],
 	regexIP: new RegExp('((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[0-9])($|\\s|[;,])', 'g'),
 	regexURL: new RegExp('http[s]?:\\/\\/\\S*(\\s|$)', 'g'),
 	regexDate: [
@@ -143,7 +143,7 @@ let contentIdentification = {
 	 * @returns {boolean}
 	 */
 	emailMatch: function (str){
-		let reg = /([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}/g
+		let reg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/g
 		return str.match(reg)
 	},
 
@@ -234,7 +234,8 @@ let contentIdentification = {
 	 * @returns {``}
 	 */
 	phoneCallItemWithEmail: function (email, number) {
-		return `<grpSpan grpcallnumber="${this.formatNumber(number)}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
+		// return `<grpSpan grpcallnumber="${this.formatNumber(number)}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
+		return `<grpSpan grpcallnumber="${number}" title="${this.phoneCallTitle(number)}">${email}</grpSpan>`
 	},
 
 	/**
@@ -332,25 +333,25 @@ let contentIdentification = {
 				searchedElement = { element: targetNode, newhtml: tagChars }
 			} else {
 				// TODO: 这里邮箱正则匹配存在问题!!!!!!!!
-				// matchList = this.emailMatch(tagChars)
-				// if(matchList){
-				// 	// console.log('match email:', matchList)
-				// 	let numberFind = false
-				// 	for (let i = 0; i < matchList.length; i++){
-				// 		let matchStr = matchList[i]
-				// 		let phoneNumber = 'number from ldap'
-				// 		if(phoneNumber){
-				// 			numberFind = true
-				// 			tagChars = tagChars.replace(
-				// 				matchStr,
-				// 				'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
-				// 			)
-				// 		}
-				// 	}
-				// 	if(numberFind){
-				// 		searchedElement = { element: targetNode, newhtml: tagChars }
-				// 	}
-				// }
+				matchList = this.emailMatch(tagChars)
+				if(matchList){
+					// console.log('match email:', matchList)
+					let numberFind = false
+					for (let i = 0; i < matchList.length; i++){
+						let matchStr = matchList[i]
+						let phoneNumber = 'number from ldap'
+						if(phoneNumber){
+							numberFind = true
+							tagChars = tagChars.replace(
+								matchStr,
+								'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
+							)
+						}
+					}
+					if(numberFind){
+						searchedElement = { element: targetNode, newhtml: tagChars }
+					}
+				}
 			}
 
 			if(searchedElement){
@@ -416,6 +417,7 @@ let contentIdentification = {
 	},
 
 	/**
+	 * TBD: 超链接处理的意义好像不大~~~
 	 * 处理带有tel等呼叫表示的超链接标签
 	 * @param targetNode
 	 * @returns {*}
@@ -430,9 +432,9 @@ let contentIdentification = {
 					const phoneCallProtocol = url.substr(item.length)
 					console.log('phoneCallProtocol：', phoneCallProtocol)
 					targetNode.setAttribute('title', this.phoneCallTitle(phoneCallProtocol))
-					// targetNode.setAttribute('href', 'javascript:void(0)')
-					// targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
+					targetNode.setAttribute('href', this.formatNumber(phoneCallProtocol))
 					targetNode.setAttribute('grpcallnumber', this.formatNumber(phoneCallProtocol))
+					targetNode.setAttribute('target', '_blank')
 					This.attachObserver()  // 重写完成后再重新设置观察器
 					break
 				}
@@ -463,9 +465,10 @@ let contentIdentification = {
 	handleClick: function (e){
 		if(e && e.target && e.target.getAttribute){
 			let callNumber = e.target.getAttribute('grpcallnumber')
+			console.log('get target call number: ', callNumber)
 			if(callNumber){
-				console.log('get target call number: ', callNumber)
 				this.handleClick2DialNumber(callNumber)
+				e.preventDefault()
 			}
 		}
 	},
@@ -491,7 +494,7 @@ window.onload = function (){
 
 	/***************************************************监听文本选中事件********************************************/
 	window.addEventListener('mouseup', function (e){
-		if(e.target.nodeName === 'GRPSPAN' || e.target.getAttribute('grpcallnumber')){
+		if(e.target.nodeName === 'GRPSPAN' || (e.target.getAttribute && e.target.getAttribute('grpcallnumber'))){
 			// 已添加自定义grpspan的内容不做处理
 			return
 		}
