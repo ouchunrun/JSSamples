@@ -1,14 +1,6 @@
 /*******************************************************************************************************************/
 /******************************************* Content-script 和 backgroundJS 间的通信处理*******************************/
 /*******************************************************************************************************************/
-let grpDialingApi = {}
-
-if(chrome){  // chrome
-	grpDialingApi.webExtension = chrome
-}else if(browser){  // firefox
-	grpDialingApi.webExtension = browser
-}
-
 /**
  *  发送消息给背景页
  * @param message 内容
@@ -62,6 +54,12 @@ let contentIdentification = {
 		new RegExp('([1-9][0-9])([0-9]{2})-(1[0-2]|0[1-9])(-)?(3[0-1]|[1-2][0-9]|0[0-9])?($|\\)|\\s)', 'g'),
 		new RegExp('(3[0-1]|[0-2][0-9]|[1-9])[\\/.-](1[0-2]|0[1-9]|[1-9])[\\/.-](([1-9][0-9])?[0-9]{2})($|\\)|\\s)', 'g'),
 		new RegExp('(1[0-2]|0[1-9]|[1-9])[\\/.-](3[0-1]|[0-2][0-9]|[1-9])[\\/.-](([1-9][0-9])?[0-9]{2})($|\\)|\\s)', 'g'),
+	],
+	dialPlanRegex: [
+		/[0-9]+[#]*/g,
+		/\+[0-9]+[#]*/g,
+		/\*[0-9]+[#]*/g,
+		/\*[0-9][0-9]\*[0-9]+[#]*/g,
 	],
 
 	/**
@@ -138,12 +136,30 @@ let contentIdentification = {
 	},
 
 	/**
+	 * GRP dial plan 规则
+	 */
+	grpDialPlan: function (str){
+		let result
+		for (const item of this.dialPlanRegex) {
+			result = str.match(item)
+			if(result){
+				break
+			}
+		}
+		return result
+	},
+
+	/**
 	 * 匹配邮箱
+	 * 规则：
+	 * 以数字字母开头、中间可以是多个数字字母下划线或"-"，
+	 * 然后是"@"符号，后面是数字字母
+	 * 然后是"."符号加2-4个字母结尾
 	 * @param str
 	 * @returns {boolean}
 	 */
 	emailMatch: function (str){
-		let reg = /^([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+@([a-zA-Z0-9]+[_|\_|\.]?)*[a-zA-Z0-9]+\.[a-zA-Z]{2,3}$/g
+		let reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/g;
 		return str.match(reg)
 	},
 
@@ -321,18 +337,26 @@ let contentIdentification = {
 				}
 			}
 
-			// let matchList = this.phoneAndEmailMatch(tagChars)  // 获取所有能够匹配到的号码和邮箱列表
-			let matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
+			// let matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
+			let matchList = this.grpDialPlan(tagChars)
 			if(matchList){
 				// console.log('match number:', matchList)
 				for (let i = 0; i < matchList.length; i++) {
 					let matchStr = matchList[i]
 					// 文本加密
-					tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
+					let target = '</grpphone>'
+					let index = tagChars.lastIndexOf(target)
+					if(index>=0){
+						// TODO: solve 被加密后的字符串转换后还存在数字时，会被再次加密问题
+						let preStr = tagChars.substring(0, index + target.length)
+						let endStr = tagChars.substring(index + target.length)
+						tagChars = preStr + endStr.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
+					}else {
+						tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
+					}
 				}
 				searchedElement = { element: targetNode, newhtml: tagChars }
 			} else {
-				// TODO: 这里邮箱正则匹配存在问题!!!!!!!!
 				matchList = this.emailMatch(tagChars)
 				if(matchList){
 					// console.log('match email:', matchList)
@@ -508,7 +532,6 @@ window.onload = function (){
 					selectionText: selection.toString(),
 				}
 			})
-		}else {/*不存在选中内容*/}
+		}
 	})
-
 }

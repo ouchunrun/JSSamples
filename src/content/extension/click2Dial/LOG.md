@@ -1,3 +1,9 @@
+## 2022-11-29
+
+- 解决自定义html元素存在嵌套时decodeURIComponent失败问题
+  - 原因：是被encodeURIComponent后的字符串存在数字时被再次替换
+  - 处理：避免encodeURIComponent后的字符串被替换
+
 ## 2022-11-28
 
 - 定位插件启用后某些页面加载会卡住甚至白屏问题：
