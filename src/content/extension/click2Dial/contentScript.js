@@ -1,31 +1,6 @@
-/*******************************************************************************************************************/
-/******************************************* Content-script 和 backgroundJS 间的通信处理*******************************/
-/*******************************************************************************************************************/
-/**
- *  发送消息给背景页
- * @param message 内容
- * @param callback 回调
- */
-function sendMessageToBackgroundJS(message, callback){
-	if (chrome.runtime && chrome.runtime.sendMessage) {
-		if (chrome.app && typeof chrome.app.isInstalled !== "undefined") {
-			message.requestType = 'contentMessage2Background'
-			chrome.runtime.sendMessage(message, function (response) {
-				if (callback) {
-					callback(response)
-				}
-			});
-		} else {
-			// 当在扩展管理中心刷新或更新了某扩展，然后切换到浏览器某标签页的页面中直接使用该扩展时，扩展可能报错"Extension context invalidated"
-		}
-	}
-}
+let gsContentScript = {
+	extensionNamespace: '',
 
-/*******************************************************************************************************************/
-/***********************************************网页内容识别***********************************************************/
-/*******************************************************************************************************************/
-
-let contentIdentification = {
 	// 忽略的HTML DOM对象列表
 	ignoreHTMLDomList: [
 		'AUDIO',
@@ -63,6 +38,31 @@ let contentIdentification = {
 	],
 
 	/**
+	 * 设置当前命名空间
+	 */
+	init: function (){
+		console.log('namespace init')
+		let nameSpace
+		try {
+			if(chrome && chrome.runtime){
+				nameSpace = chrome
+				console.log('get extension namespace, ', chrome)
+			}
+		}catch (e){
+			if(browser && browser.runtime){
+				nameSpace = browser
+				console.log('get extension namespace, ', browser)
+			}
+		}
+
+		if(nameSpace && nameSpace.runtime && nameSpace.runtime.onMessage){
+			console.log('set runtime onMessage listener')
+			nameSpace.runtime.onMessage.addListener(this.runtimeOnMessageListener)
+		}
+		this.extensionNamespace = nameSpace
+	},
+
+	/**
 	 * 创建并返回一个新的观察器，它会在触发指定 DOM 事件时，调用指定的回调函数。
 	 * MutationObserver 对 DOM 的观察不会立即启动；而必须先调用 observe() 方法来确定，要监听哪一部分的 DOM 以及要响应哪些更改.
 	 *
@@ -76,14 +76,14 @@ let contentIdentification = {
 				const { tagName } = node
 				if ('A' === tagName) {
 					// console.log('Dynamic element "A" will be processed')
-					contentIdentification.tryReWriteAnchorTag(node)
-				} else if (contentIdentification.ignoreHTMLDomList.indexOf(tagName) >= 0) {
+					gsContentScript.tryReWriteAnchorTag(node)
+				} else if (gsContentScript.ignoreHTMLDomList.indexOf(tagName) >= 0) {
 					// console.log('Dynamic element ignored: ' + tagName)
 				} else {
 					// console.log('Dynamic element parsed: ' + tagName)
-					contentIdentification.urlToIgnored()
+					gsContentScript.urlToIgnored()
 					setTimeout(() => {
-						contentIdentification.pageScan(node)
+						gsContentScript.pageScan(node)
 					}, 1000)
 				}
 			})
@@ -161,17 +161,6 @@ let contentIdentification = {
 	emailMatch: function (str){
 		let reg = /^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/g;
 		return str.match(reg)
-	},
-
-	/**
-	 * 同时匹配号码和邮箱
-	 * @param str
-	 */
-	phoneAndEmailMatch: function (str){
-		const res = /(1[0-9]{2,10})|([0-9]{3,4})?[0-9]{7,8}|[\d\w]+\b@[a-zA-ZA-z0-9]+.[a-z]+/g; //匹配手机号或者固话,邮箱
-		str = str.replace(/\s|[(]|[)]|[（]|[）]|[-]*/g, ''); //去除字符串中所有空格、小括号和横杠
-		 //识别手机号或者固话（在字符串内检索指定的值，或找到一个或多个正则表达式的匹配）
-		return str.match(res)
 	},
 
 	/**
@@ -337,44 +326,44 @@ let contentIdentification = {
 				}
 			}
 
-			// let matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
-			let matchList = this.grpDialPlan(tagChars)
+			let matchList = this.emailMatch(tagChars)
 			if(matchList){
-				// console.log('match number:', matchList)
-				for (let i = 0; i < matchList.length; i++) {
+				// console.log('match email:', matchList)
+				let numberFind = false
+				for (let i = 0; i < matchList.length; i++){
 					let matchStr = matchList[i]
-					// 文本加密
-					let target = '</grpphone>'
-					let index = tagChars.lastIndexOf(target)
-					if(index>=0){
-						// TODO: solve 被加密后的字符串转换后还存在数字时，会被再次加密问题
-						let preStr = tagChars.substring(0, index + target.length)
-						let endStr = tagChars.substring(index + target.length)
-						tagChars = preStr + endStr.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
-					}else {
-						tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
+					let phoneNumber = this.getNumberFromPhoneBook({email: matchStr})
+					if(phoneNumber){
+						numberFind = true
+						tagChars = tagChars.replace(
+							matchStr,
+							'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
+						)
 					}
 				}
-				searchedElement = { element: targetNode, newhtml: tagChars }
-			} else {
-				matchList = this.emailMatch(tagChars)
+				if(numberFind){
+					searchedElement = { element: targetNode, newhtml: tagChars }
+				}
+			}else {
+				// matchList = this.poneMatch(tagChars) || this.telMatch(tagChars)
+				matchList = this.grpDialPlan(tagChars)
 				if(matchList){
-					// console.log('match email:', matchList)
-					let numberFind = false
-					for (let i = 0; i < matchList.length; i++){
+					// console.log('match number:', matchList)
+					for (let i = 0; i < matchList.length; i++) {
 						let matchStr = matchList[i]
-						let phoneNumber = 'number from ldap'
-						if(phoneNumber){
-							numberFind = true
-							tagChars = tagChars.replace(
-								matchStr,
-								'<grpemail>' + btoa(unescape(encodeURIComponent(matchStr))) +'</grpemail><grpCallNumber>' + btoa(unescape(encodeURIComponent(phoneNumber))) + '</grpCallNumber>'
-							)
+						// 文本加密
+						let target = '</grpphone>'
+						let index = tagChars.lastIndexOf(target)
+						if(index>=0){
+							// TODO: solve 被加密后的字符串转换后还存在数字时，会被再次加密问题
+							let preStr = tagChars.substring(0, index + target.length)
+							let endStr = tagChars.substring(index + target.length)
+							tagChars = preStr + endStr.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
+						}else {
+							tagChars = tagChars.replace(matchStr, '<grpphone>' + btoa(unescape(encodeURIComponent(matchStr))) + '</grpphone>')
 						}
 					}
-					if(numberFind){
-						searchedElement = { element: targetNode, newhtml: tagChars }
-					}
+					searchedElement = { element: targetNode, newhtml: tagChars }
 				}
 			}
 
@@ -469,20 +458,6 @@ let contentIdentification = {
 	},
 
 	/**
-	 * 处理点击呼叫的号码
-	 * @param number
-	 */
-	handleClick2DialNumber: function (number){
-		console.log('handleClick2DialNumber:', number)
-		sendMessageToBackgroundJS({
-			cmd: 'contentScriptClick2Dial',
-			data: {
-				number: number,
-			}
-		})
-	},
-
-	/**
 	 * 处理页面点击事件
 	 * @param e
 	 */
@@ -496,24 +471,152 @@ let contentIdentification = {
 			}
 		}
 	},
+
+	/**
+	 * 处理点击呼叫的号码
+	 * @param number
+	 */
+	handleClick2DialNumber: function (number){
+		console.log('handleClick2DialNumber:', number)
+		this.sendMessageToBackgroundJS({
+			cmd: 'contentScriptClick2Dial',
+			data: {
+				number: number,
+			}
+		})
+	},
+
+	/**************************************************************************************************************/
+	/**********************************************和背景页间的消息通信**********************************************/
+	/**************************************************************************************************************/
+	/**
+	 * send message to backgroud
+	 * @param message
+	 * @param callback
+	 */
+	sendMessageToBackgroundJS: function (message, callback){
+		if (chrome.runtime && chrome.runtime.sendMessage) {
+			if (chrome.app && typeof chrome.app.isInstalled !== "undefined") {
+				message.requestType = 'contentMessage2Background'
+				chrome.runtime.sendMessage(message, function (response) {
+					if (callback) {
+						callback(response)
+					}
+				});
+			} else {
+				// 当在扩展管理中心刷新或更新了某扩展，然后切换到浏览器某标签页的页面中直接使用该扩展时，扩展可能报错"Extension context invalidated"
+			}
+		}
+	},
+
+	/**
+	 * Listen for messages from the background script.
+	 */
+	runtimeOnMessageListener: function (request, sender, sendResponse){
+		if(request && request.requestType === 'backgroundMessage2ContentScript'){
+			switch (request.cmd){
+				case "pageReload":
+					console.log('[EXT] Reload the page after authorization')
+					if(confirm('Reload the page after authorization is complete.') === true){
+						window.location.reload(true)
+					}
+					break
+				case 'phoneBookUpdate':
+					if(request.data && request.data.phoneBooks && JSON.stringify(request.data.phoneBooks) !== '{}'){
+						let info = request.data.phoneBooks
+						info['deviceId'] = request.data.deviceId
+						localStorage.setItem('X-extendedContacts', JSON.stringify(info))
+					}else {
+						localStorage.removeItem('X-extendedContacts')
+					}
+					break
+				default:
+					break
+			}
+		}
+		sendResponse('request success');
+	},
+
+	/*******************************************************************************************************************/
+	/******************************************* 查找通讯录联系人 *********************************************************/
+	/*******************************************************************************************************************/
+	/**
+	 * 使用邮箱根据本地通讯录查找号码
+	 * @param data: {
+	 *     email: '被叫邮箱',
+	 * }
+	 */
+	getNumberFromPhoneBook: function (data){
+		if(!data || !data.email){
+			console.log('[EXT] email parameter MUST offer!')
+			return ''
+		}
+
+		let phoneNumber = ''
+		let phoneBooks = JSON.parse(localStorage.getItem('X-extendedContacts'))
+		if(phoneBooks){
+			if(data.email){
+				// 优先查询ldap
+				if(phoneBooks.ldap){
+					for (let i = 0; i<phoneBooks.ldap.length; i++){
+						if(phoneBooks.ldap[i].email === data.email){
+							phoneNumber = phoneBooks.ldap[i].AccountNumber
+							break
+						}
+					}
+				}
+
+				if(!phoneNumber){
+					// 然后再查询本地通讯录
+					let key = 'localAddressBook'
+					if(phoneBooks.deviceId){
+						key = key + '_' + phoneBooks.deviceId.indexOf('://') ? phoneBooks.deviceId.split('://')[1] : phoneBooks.deviceId
+					}
+
+					if(phoneBooks[key]){
+						let localAddressBook = phoneBooks[key]
+						for (let j = 0; j<localAddressBook.length; j++){
+							if(localAddressBook[j].email === data.email){
+								phoneNumber = localAddressBook[j].Phone?.phonenumber
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if(!phoneNumber){
+			console.log(data.email, '**********设置测试号码 1000*********************************')
+			phoneNumber = 1000
+		}
+		return phoneNumber
+	},
 }
+
+
+/*******************************************************************************************************************/
+/***********************************************屏幕取词呼叫***********************************************************/
+/*******************************************************************************************************************/
 
 /**
  * 页面dom节点扫描
  */
 window.onload = function (){
+	gsContentScript.init()
+
+	// 获取document.body并扫描
 	let bodyCheck = setInterval(function (){
 		if(document.body){
 			clearInterval(bodyCheck)
 			bodyCheck = null
-			contentIdentification.pageScan(document.body)
+			gsContentScript.pageScan(document.body)
 		}
 	}, 1000)
 
-
 	// 捕获元素点击事件
 	document.addEventListener('click', function (e){
-		contentIdentification.handleClick(e)
+		gsContentScript.handleClick(e)
 	}, { capture: true })
 
 	/***************************************************监听文本选中事件********************************************/
@@ -526,7 +629,7 @@ window.onload = function (){
 		let selection = window.getSelection()
 		if(selection.anchorOffset !== selection.extentOffset){
 			console.log('selection:', selection.toString())
-			sendMessageToBackgroundJS({
+			gsContentScript.sendMessageToBackgroundJS({
 				cmd: 'contentScriptMenusCheck',
 				data: {
 					selectionText: selection.toString(),
