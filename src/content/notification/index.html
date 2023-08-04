@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>web notification</title>
+    <style>
+        button{
+            width: auto;
+            height: 30px;
+            margin: 20px;
+            background: black;
+            border-radius: 5px;
+            color: aliceblue;
+        }
+    </style>
+</head>
+<body>
+<button onclick="sendNotification()">click me to request notification permission!</button>
+<br>
+<button onclick="showNotification()">show notification</button>
+
+<script>
+    let notificationOptions = {
+        requireInteraction: true,
+        tag: 'safariNotificationTest',
+        icon: './logo.png',
+        body: `来电显示${Date.now()}`,
+        onClickCallback: function () {
+            window.parent?.focus()
+        },
+    }
+    function sendNotification(){
+        if (Notification.permission === 'granted') {
+            createNotification('GRP Click2Dial1', notificationOptions)
+        }else {
+            requestNotificationPermission().then((isGranted) => {
+                if (isGranted) {
+                    createNotification('GRP Click2Dial11', notificationOptions)
+                }
+            })
+        }
+    }
+    function showNotification(){
+        createNotification('GRP Click2Dial2', notificationOptions)
+    }
+</script>
+<script type="application/javascript" src="notification.js"></script>
+</body>
+</html>
