@@ -1,0 +1,48 @@
+body {
+    width: 80%;
+    margin: 0 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+}
+button {
+    line-height: 50px;
+    padding: 0;
+    border: none;
+    background: #1F7FF5;
+    font-family: PingFangSC-Regular;
+    font-weight: 400;
+    font-size: 18px;
+    color: #FFFFFF;
+    letter-spacing: 0;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+}
+#getPicButton {
+    background: brown;
+}
+.clipboardImgContent, #clipboardImg{
+    max-height: 200px;
+}
+textarea {
+    width: 100%;
+    height: 100%;
+    margin-top: 20px;
+}
+#errorTip {
+    color: red;
+    font-size: 20px;
+    margin-top: 20px;
+    min-height: 10px;
+    border: 1px solid #FF0000;
+}
+#clipboardType{
+    color: red;
+}
+.vc-switch{
+    width: 100px;
+    height: 50px;
+    line-height: 50px !important;
+    text-align: center !important;
+    font-size: 20px !important;
+}

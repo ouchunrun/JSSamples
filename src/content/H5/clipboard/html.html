@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clipboard API Test</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<h1>Clipboard API test</h1>
+
+<h2>Error tip:</h2>
+
+<div id="errorTip"></div>
+
+<div class="clipboardImgContent">
+    <img src="" alt="" id="clipboardImg">
+</div>
+<p>图片URL: <span id="imgURL"></span></p>
+<p>剪切板数据类型：<span id="clipboardType"></span></p>
+<button id="getPicButton">点击读取剪切板图片</button>
+
+<textarea name="" id="clipboardContent" cols="30" rows="10"></textarea>
+
+<button id="myButton">点击读取剪贴板</button>
+
+<script src="vconsole.min.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
