@@ -734,6 +734,7 @@ async function loadDylibs() {
         dynamicLibraries.length && (addRunDependency("loadDylibs"),
         dynamicLibraries.slice(0, 1).reduce((function(e, r) {
             return e.then((function() {
+                console.warn('load dynamic library:', r)
                 return loadDynamicLibrary(r, {
                     loadAsync: !0,
                     global: !0,

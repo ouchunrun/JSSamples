@@ -552,7 +552,7 @@
       , nt = {
         std: {
             version: "1.2.0",
-            path: M(L + "../../dynamsoft-capture-vision-std@1.2.0/dist/")
+            path: M(L )
         },
         core: {
             version: "3.2.10",
@@ -621,8 +621,10 @@
                 let t = r.core + ht._workerName;
                 r.rootDirectory && (t = r.rootDirectory + t),
                 t.startsWith(location.origin) || (t = await fetch(t).then((t => t.blob())).then((t => URL.createObjectURL(t)))),
+                console.warn('worker加载路径:', t)
                 Z = new Worker(t),
                 Z.onerror = t => {
+                    console.error('worker 加载失败......')
                     let e = new Error(t.message);
                     o.reject(e)
                 }
@@ -1627,7 +1629,8 @@
     const Gt = "1.2.0";
     "string" != typeof nt.std && w(nt.std.version, Gt) < 0 && (nt.std = {
         version: Gt,
-        path: bt(Tt + `../../dynamsoft-capture-vision-std@${Gt}/dist/`)
+        // path: bt(Tt + `../../dynamsoft-capture-vision-std@${Gt}/dist/`),
+        path: bt(Tt)
     });
     var Wt = Object.freeze({
         __proto__: null,
@@ -1782,12 +1785,14 @@
     const Jt = "1.2.0";
     "string" != typeof nt.std && w(nt.std.version, Jt) < 0 && (nt.std = {
         version: Jt,
-        path: Kt(Zt + `../../dynamsoft-capture-vision-std@${Jt}/dist/`)
+        // path: Kt(Zt + `../../dynamsoft-capture-vision-std@${Jt}/dist/`),
+        path: Kt(Zt)
     });
     const Qt = "2.2.10";
     (!nt.dip || "string" != typeof nt.dip && w(nt.dip.version, Qt) < 0) && (nt.dip = {
         version: Qt,
-        path: Kt(Zt + `../../dynamsoft-image-processing@${Qt}/dist/`)
+        // path: Kt(Zt + `../../dynamsoft-image-processing@${Qt}/dist/`),
+        path: Kt(Zt)
     });
     class $t {
         static getVersion() {
@@ -24498,12 +24503,14 @@
     const Bs = "1.2.0";
     "string" != typeof nt.std && w(nt.std.version, Bs) < 0 && (nt.std = {
         version: Bs,
-        path: ks(Ps + `../../dynamsoft-capture-vision-std@${Bs}/dist/`)
+        // path: ks(Ps + `../../dynamsoft-capture-vision-std@${Bs}/dist/`),
+        path: ks(Ps)
     });
     const Ns = "2.2.10";
     (!nt.dip || "string" != typeof nt.dip && w(nt.dip.version, Ns) < 0) && (nt.dip = {
         version: Ns,
-        path: ks(Ps + `../../dynamsoft-image-processing@${Ns}/dist/`)
+        // path: ks(Ps + `../../dynamsoft-image-processing@${Ns}/dist/`),
+        path: ks(Ps)
     });
     const Us = "function" == typeof BigInt ? {
         BF_NULL: BigInt(0),
@@ -24931,12 +24938,19 @@
     }
     ;
     ht.engineResourcePaths = {
-        std: eo(to + "../../dynamsoft-capture-vision-std@1.2.0/dist/"),
-        dip: eo(to + "../../dynamsoft-image-processing@2.2.10/dist/"),
-        core: eo(to + "../../dynamsoft-core@3.2.10/dist/"),
-        license: eo(to + "../../dynamsoft-license@3.2.10/dist/"),
-        cvr: eo(to + "../../dynamsoft-capture-vision-router@2.2.10/dist/"),
-        dce: eo(to + "../../dynamsoft-camera-enhancer@4.0.2/dist/")
+        // std: eo(to + "../../dynamsoft-capture-vision-std@1.2.0/dist/"),
+        // dip: eo(to + "../../dynamsoft-image-processing@2.2.10/dist/"),
+        // core: eo(to + "../../dynamsoft-core@3.2.10/dist/"),
+        // license: eo(to + "../../dynamsoft-license@3.2.10/dist/"),
+        // cvr: eo(to + "../../dynamsoft-capture-vision-router@2.2.10/dist/"),
+        // dce: eo(to + "../../dynamsoft-camera-enhancer@4.0.2/dist/"),
+
+        std: eo(to),
+        dip: eo(to),
+        core: eo(to),
+        license: eo(to),
+        cvr: eo(to),
+        dce: eo(to)
     },
     t.CVR = ne,
     t.Core = wt,
