@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <title>Dynamsoft Barcode Scanner</title>
+  <link href="icon/icons8-barcode-scanner-64.png" rel="shortcut icon">
   <!-- online link -->
   <!-- <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script> -->
   <!-- <script src="https://unpkg.com/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script> -->
@@ -19,7 +20,7 @@
       border: 1px solid #fbb360;
     }
 
-    #start {
+    button {
       width: max-content;
       color: aliceblue;
       background: #cd4246;
@@ -29,20 +30,21 @@
       padding: 10px;
       user-select: none !important;
     }
-    #start:disabled {
-    background-color: gray;
-    color: white;
-    cursor: not-allowed;
-  }
+
+    button:disabled {
+      background-color: gray;
+      color: white;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 
 <body>
   <div>
     <button id="start">点击开始扫描</button>
+    <button id="stop" disabled>点击停止扫描</button>
   </div>
   <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
-
 
   <h2>扫描结果：</h2>
   <textarea id="results" style="width: 100%; min-height: 10vh; font-size: 3vmin; overflow: auto" disabled></textarea>
