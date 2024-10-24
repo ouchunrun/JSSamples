@@ -1,53 +1,35 @@
 <!DOCTYPE html>
 <html>
-
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <title>Dynamsoft Barcode Scanner</title>
   <link href="icon/icons8-barcode-scanner-64.png" rel="shortcut icon">
+  <link rel="stylesheet" href="style.css">
+
   <!-- online link -->
   <!-- <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script> -->
   <!-- <script src="https://unpkg.com/dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script> -->
   <!-- local link -->
   <script src="dynamsoft-barcode-reader@10.2.10/dist/dbr.bundle.js"></script>
-  <style>
-    body {
-      font-family: fangsong;
-    }
-
-    #cameraViewContainer {
-      border: 1px solid #fbb360;
-    }
-
-    button {
-      width: max-content;
-      color: aliceblue;
-      background: #cd4246;
-      border: none;
-      border-radius: 5px;
-      margin: 10px 0;
-      padding: 10px;
-      user-select: none !important;
-    }
-
-    button:disabled {
-      background-color: gray;
-      color: white;
-      cursor: not-allowed;
-    }
-  </style>
 </head>
 
 <body>
-  <div>
-    <button id="start">点击开始扫描</button>
-    <button id="stop" disabled>点击停止扫描</button>
+  <div class="container">
+    <div class="container-left">
+      <div class="container-title">
+        <button id="start">点击开始扫描</button>
+        <button id="stop" disabled>点击停止扫描</button>
+      </div>
+      <div id="cameraViewContainer" class="cameraView"></div>
+    </div>
+    <div class="container-right">
+      <div class="container-title">
+        <span class="container-result-title">扫描结果</span>
+      </div>
+      <div id="results" class="barcode-list" disabled></div>
+    </div>
   </div>
-  <div id="cameraViewContainer" style="width: 100%; height: 60vh"></div>
-
-  <h2>扫描结果：</h2>
-  <textarea id="results" style="width: 100%; min-height: 10vh; font-size: 3vmin; overflow: auto" disabled></textarea>
 
   <script src="main.js"></script>
 </body>
