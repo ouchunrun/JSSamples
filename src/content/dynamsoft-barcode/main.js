@@ -115,6 +115,7 @@ let barcodeDecode = {
      * 处理扫描结果
      */
     handleBarcodeDecodeResult: function(result){
+        console.log('result.barcodeResultItems:', result.barcodeResultItems)
         if (result.barcodeResultItems?.length > 0) {
             let preBarcodeList = Array.from(this.resultsContainer.querySelectorAll('.barcode-text')).map(item => item.textContent);
             let fragment = document.createDocumentFragment()
