@@ -24,6 +24,8 @@ let barcodeDecode = {
         this.stopButton.disabled = true
         this.startButton.disabled = false
 
+        this.clearAllStorage()
+
         // 非必须
         // this.initDynamsoftLicense()
     },
@@ -39,32 +41,32 @@ let barcodeDecode = {
         this.startButton.disabled = true
         this.stopButton.disabled = false
     
-        this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
-        this.view = await Dynamsoft.DCE.CameraView.createInstance();
-        this.cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(this.view);
-        this.router.setInput(this.cameraEnhancer);
+        this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
+        this.view = await Dynamsoft.DCE.CameraView.createInstance()
+        this.cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(this.view)
+        this.router.setInput(this.cameraEnhancer)
         
         // 添加video显示视频流
-        this.cameraViewContainer.append(this.view.getUIElement());
+        this.cameraViewContainer.append(this.view.getUIElement())
         // 处理扫描结果
-        this.router.addResultReceiver({ onDecodedBarcodesReceived: this.handleBarcodeDecodeResult.bind(this) });
+        this.router.addResultReceiver({ onDecodedBarcodesReceived: this.handleBarcodeDecodeResult.bind(this) })
     
-        let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
-        filter.enableResultCrossVerification("barcode", true);
-        filter.enableResultDeduplication("barcode", true);
-        await this.router.addResultFilter(filter);
+        let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter()
+        filter.enableResultCrossVerification("barcode", true)
+        filter.enableResultDeduplication("barcode", true)
+        await this.router.addResultFilter(filter)
     
-        await this.cameraEnhancer.open();
-        await this.router.startCapturing("ReadSingleBarcode");
+        await this.cameraEnhancer.open()
+        await this.router.startCapturing("ReadSingleBarcode")
     },
 
     handleBarcodeDecodeResult: function(result){
         if (result.barcodeResultItems?.length > 0) {
             // 先清空
-            this.resultsContainer.textContent = '';
+            this.resultsContainer.textContent = ''
             for (let item of result.barcodeResultItems) {
                 // 添加扫描结果
-                this.resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
+                this.resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`
                 console.log(`${item.formatString}: ${item.text}`)
             }
         }
@@ -72,11 +74,11 @@ let barcodeDecode = {
 
     stopScanning: function (){
         console.log('stop scanning')
-        this.router?.dispose();
-        this.cameraEnhancer?.dispose();
+        this.router?.dispose()
+        this.cameraEnhancer?.dispose()
     
         // 去除video节点
-        let ui =  this.view?.getUIElement();
+        let ui =  this.view?.getUIElement()
         if(ui) {
             this.cameraViewContainer?.removeChild(ui)
         }
@@ -84,6 +86,16 @@ let barcodeDecode = {
         this.startButton.disabled = false
         this.stopButton.disabled = true
     },
+
+    // 请求所有缓存
+    clearAllStorage: function (){
+        console.log('clear all storage')
+         // 清除 localStorage
+        localStorage.clear()
+        
+        // 清除 sessionStorage
+        sessionStorage.clear()
+    }
 }
 
 window.onload = async function (){
