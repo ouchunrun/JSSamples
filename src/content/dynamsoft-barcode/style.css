@@ -6,108 +6,124 @@ body {
 }
 
 button {
-    width: max-content;
-    margin: 10px 20px;
-    padding: 8px;
     user-select: none !important;
     font-size: 16px;
-    background-color: #fff;
-    border: 1px solid #288ef6;
     font-size: 16px;
-    color: #288ef6;
-    border-radius: 4px;
     vertical-align: middle;
     text-align: center;
     line-height: 23px;
     cursor: pointer;
     font-weight: bold;
+    height: 50px;
+    width: 150px;
+    background-color: #444;
+    color: rgb(254, 142, 20);
+    border: none;
+    background-color: #000;
+    border-bottom: 1px solid #222222;
 }
 
 button:disabled {
-    opacity: 0.5;
     cursor: not-allowed;
+    color: #575757;
 }
 
 .container{
     width: 100%;
     height: 100%;
     position: absolute;
+    overflow: hidden;
 }
 
 .container-title{
     height: 60px;
     width: 100%;
     text-align: center;
-    background: linear-gradient(to bottom, #396194, rgb(57 97 148) 60%, #274f82 75%, #274f82);
+    border-bottom: 1px solid #dddddd;
 }
 
 .container-left{
     position: relative;
-    width: calc(100% - 400px);
+    height: 100%;
+    width: 30%;
     float: left;
+    background-color: #222 !important;
+    color: aliceblue;
+}
+
+.operation{
+    user-select: text;
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+    transform: translate(0, -50%);
+    z-index: 10;
 }
 
 .container-right{
-    position: relative;
-    width: 400px;
+    width: 70%;
     float: right;
+    background: #3232347d;
 }
 
 .container-result-title{
     height: 60px;
     line-height: 60px;
     text-align: left;
-    font-size: x-large;
+    font-size: xx-large;
     font-weight: 800;
     user-select: text;
 }
 
 .cameraView {
     border: 1px solid #396194;
-    height: calc(100vh - 100px);
+    height: calc(100vh);
     user-select: none;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: 150px;
+}
+
+.cameraView img{
+    height: 400px;
 }
 
 .barcode-list{
     width: 100%;
-    height: calc(100vh - 100px);
+    height: calc(100vh);
     overflow: auto;
-    border: 1px solid #396194;
     padding: 0;
 }
 
 .barcode-list-nav{
-    height: 40px; 
     width: 100%;
-    background: #dce0e5;
+    background: #3232347d;
     line-height: 40px;
-    padding: 0 10px;
     margin-bottom: 2px;
-    font-size: 20px;
+    font-size: 18px;
 }
 
-.barcode-format{
-    
+.barcode-content{
+    margin: 0 10px;
 }
-
-.barcode-text{
-
-}
-
 
 .copy-button {
-    color: #000000;
+    color: #fe8e14;
     position: relative;
-    right: 30px;
     float: right;
+    right: 5px;
     display: inline-block;
     font-weight: bold;
     line-height: 40px;
+    cursor: pointer;
+    min-width: 60px;
+    text-align: center;
 }
 
 .copy-button-Copied{
-    color: rgb(254, 142, 20) !important;
+    color: #999 !important;
+}
+
+.file-upload{
+    display: none;
 }

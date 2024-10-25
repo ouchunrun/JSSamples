@@ -15,7 +15,6 @@ let barcodeDecode = {
     cameraEnhancer: null,
     barcodeCount: 0, // 扫描到的条码数量
 
-
     EnumCapturedScanType: {
         IMAGE: 1, // 图片
     },
@@ -71,8 +70,10 @@ let barcodeDecode = {
             
             element.style.width = '300px'
             element.style.height = '40px'
-            element.style.backgroundColor = '#dce0e5'
+            element.style.backgroundColor = 'rgb(0 0 0)'
             element.style.fontWeight = 'bold'
+            element.style.color = 'aliceblue'
+            element.style.padding = '0 5px'
         }
 
         let container = this.UIElement.shadowRoot.querySelector("div > div:nth-child(5)")
@@ -98,20 +99,22 @@ let barcodeDecode = {
      */
      startCaptureImage: function(){
         console.log('start capture image')
+        this.stopScanning()
+
         this.fileUploadInput.click()
     },
 
     /**
      * 处理上传的文件
      */
-    handleFileOnChange: async function(){
+    handleFileOnChange: async function(e){
         console.log('handle file on change')
-        let files = this.fileUploadInput.files
+        let files = e.target.files
         
-        const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
+        this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
         for (let file of files) {
             // Decode selected image with 'ReadBarcodes_SpeedFirst' template.
-            const result = await cvRouter.capture(file, 'ReadBarcodes_SpeedFirst');
+            const result = await this.router.capture(file, 'ReadBarcodes_SpeedFirst')
             if (!result.items.length){
                 console.log('No barcode found!')
                 continue
@@ -119,7 +122,29 @@ let barcodeDecode = {
 
             console.log('Get captured results: ', result)
             this.handleBarcodeDecodeResult(result, this.EnumCapturedScanType.IMAGE)
+
+            this.showCapturedImage(file)
         }
+    },
+
+    /**
+     * 页面显示处理的图片
+     */
+    showCapturedImage: function(file){
+        let _this = this
+        let reader = new FileReader()
+        reader.onload = function(e){
+            let image = new Image()
+            image.src = e.target.result
+            image.onload = function() {
+                console.log('Show captured image in page')
+                _this.cameraViewContainer.append(image)
+            };
+            image.onerror = function() {
+                console.error('Error reading file:', this.src)
+            }
+        }
+        reader.readAsDataURL(file) // 开始读取图片
     },
 
     /**
@@ -127,10 +152,10 @@ let barcodeDecode = {
      */
     startScanning: async function (){
         console.log('start scanning')
-        // this.resultsContainer.textContent = '' // 重新开始扫描时，清除之前的扫描内容
+        this.cameraViewContainer.innerHTML = ''
         this.startButton.disabled = true
         this.stopButton.disabled = false
-    
+
         this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
         this.view = await Dynamsoft.DCE.CameraView.createInstance()
         this.cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(this.view)
@@ -175,20 +200,10 @@ let barcodeDecode = {
                     let newChild = document.createElement('div')
                     newChild.classList.add('barcode-list-nav')
 
-                    let barcodeFormatSpan = document.createElement('span')
-                    barcodeFormatSpan.classList.add('barcode-format')
-                    barcodeFormatSpan.textContent = this.barcodeCount + '. ' + barcodeFormat + ': '
-                    newChild.appendChild(barcodeFormatSpan)
-                    
-                    let newBarcodeContentSpan = document.createElement('span')
-                    newBarcodeContentSpan.textContent = barcodeText
-                    newBarcodeContentSpan.classList.add('barcode-text')
-                    newChild.appendChild(newBarcodeContentSpan)
-
+                    // Copy 按钮
                     let copyButton = document.createElement('span')
                     copyButton.classList.add('copy-button')
                     copyButton.innerText = 'Copy'
-                    // 点击拷贝文本到剪切板
                     copyButton.onclick = async function(){
                         await navigator.clipboard.writeText(barcodeText)
                         copyButton.innerText = 'Copied'
@@ -199,7 +214,21 @@ let barcodeDecode = {
                         }, 2000)
                     }
                     newChild.appendChild(copyButton)
+
+                    let barcodeChild = document.createElement('div')
+                    barcodeChild.classList.add('barcode-content')
+                    // 类型： 二维码或条码类型
+                    let barcodeFormatSpan = document.createElement('span')
+                    barcodeFormatSpan.classList.add('barcode-format')
+                    barcodeFormatSpan.textContent = this.barcodeCount + '.' + barcodeFormat + ': '
+                    barcodeChild.appendChild(barcodeFormatSpan) 
+                    // 条码值
+                    let newBarcodeContentSpan = document.createElement('span')
+                    newBarcodeContentSpan.textContent = barcodeText
+                    newBarcodeContentSpan.classList.add('barcode-text')
+                    barcodeChild.appendChild(newBarcodeContentSpan)
                     
+                    newChild.appendChild(barcodeChild)
                     fragment.appendChild(newChild)
                 }else {
                     // Duplicate barcode
@@ -218,17 +247,26 @@ let barcodeDecode = {
      */
     stopScanning: function (){
         console.log('stop scanning')
-        this.router?.dispose()
-        this.cameraEnhancer?.dispose()
-    
-        // 去除video节点
-        let ui =  this.view?.getUIElement()
-        if(ui) {
-            this.cameraViewContainer?.removeChild(ui)
+        try{
+            if(this.router && !this.router.bDestroyed){
+                this.router.dispose()
+            }
+
+            if(this.cameraEnhancer && !this.cameraEnhancer.disposed){
+                this.cameraEnhancer.dispose()
+            }
+
+            // 去除video节点
+            let ui = this.view?.getUIElement()
+            if(ui) {
+                this.cameraViewContainer?.removeChild(ui)
+            }
+        
+            this.startButton.disabled = false
+            this.stopButton.disabled = true
+        }catch (e){
+            // console.log('Stop scanning error:', e)
         }
-    
-        this.startButton.disabled = false
-        this.stopButton.disabled = true
     },
 
     /**

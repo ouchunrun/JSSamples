@@ -1,3 +1,10 @@
+
+# 功能
+
+- 1.支持图片识别
+- 2.支持通过摄像头扫描
+- 3.支持条形码和二维码识别
+
 # 参考
 
 ## [Dynamsoft Barcode Reader JavaScript Edition 10.x 版本简介](https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/)
