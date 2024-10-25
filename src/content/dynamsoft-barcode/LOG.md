@@ -9,6 +9,8 @@
   - 扫描实现通过 _captureInWorker 接口，在worker中解析处理
   - 处理：调用initDynamsoftLicense接口，初始化lisense，避免出现"No license found
 
+- 3.添加从图片识别条形码的功能，参考：https://github.com/Dynamsoft/barcode-reader-javascript-samples/tree/main/hello-world/angular
+
 ## 2024-10·24
 
 - 1.去除外部服务器请求

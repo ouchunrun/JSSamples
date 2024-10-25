@@ -3,6 +3,8 @@ let barcodeDecode = {
     // 页面元素
     startButton: null,
     stopButton: null,
+    captureImageButton: null,
+    fileUploadInput: null,
     cameraViewContainer: null,
     resultsContainer: null,
 
@@ -12,6 +14,14 @@ let barcodeDecode = {
     view: null,
     cameraEnhancer: null,
     barcodeCount: 0, // 扫描到的条码数量
+
+
+    EnumCapturedScanType: {
+        IMAGE: 1, // 图片
+    },
+    EnumCapturedResultItemType: {
+        CRIT_BARCODE: 2, // 图片
+    },
     
     /**
      * 初始化页面元素
@@ -20,11 +30,15 @@ let barcodeDecode = {
         console.log('init dom variables')
         this.startButton = document.getElementById('start')
         this.stopButton = document.getElementById('stop')
+        this.captureImageButton = document.getElementById('captureImage')
+        this.fileUploadInput = document.getElementById('fileUpload')
         this.cameraViewContainer = document.getElementById('cameraViewContainer')
         this.resultsContainer = document.querySelector("#results")
 
         this.startButton.addEventListener('click',  this.startScanning.bind(this))
         this.stopButton.addEventListener('click',  this.stopScanning.bind(this))
+        this.captureImageButton.addEventListener('click',  this.startCaptureImage.bind(this))
+        this.fileUploadInput.addEventListener('change',  this.handleFileOnChange.bind(this))
         this.stopButton.disabled = true
         this.startButton.disabled = false
 
@@ -79,6 +93,35 @@ let barcodeDecode = {
         }
     },
 
+     /**
+     * 图片识别
+     */
+     startCaptureImage: function(){
+        console.log('start capture image')
+        this.fileUploadInput.click()
+    },
+
+    /**
+     * 处理上传的文件
+     */
+    handleFileOnChange: async function(){
+        console.log('handle file on change')
+        let files = this.fileUploadInput.files
+        
+        const cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
+        for (let file of files) {
+            // Decode selected image with 'ReadBarcodes_SpeedFirst' template.
+            const result = await cvRouter.capture(file, 'ReadBarcodes_SpeedFirst');
+            if (!result.items.length){
+                console.log('No barcode found!')
+                continue
+            }
+
+            console.log('Get captured results: ', result)
+            this.handleBarcodeDecodeResult(result, this.EnumCapturedScanType.IMAGE)
+        }
+    },
+
     /**
      * 开始扫描
      */
@@ -102,10 +145,7 @@ let barcodeDecode = {
         this.router.addResultReceiver({ onDecodedBarcodesReceived: this.handleBarcodeDecodeResult.bind(this) })
     
         let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter()
-        // filter.enableResultCrossVerification("barcode", true)
-        // filter.enableResultDeduplication("barcode", true)
         await this.router.addResultFilter(filter)
-        
     
         await this.cameraEnhancer.open()
         await this.router.startCapturing("ReadSingleBarcode")
@@ -114,12 +154,16 @@ let barcodeDecode = {
     /**
      * 处理扫描结果
      */
-    handleBarcodeDecodeResult: function(result){
-        // console.warn('result.barcodeResultItems:', result.barcodeResultItems)
+    handleBarcodeDecodeResult: function(result, ScanType){
         if (result.barcodeResultItems?.length > 0) {
             let preBarcodeList = Array.from(this.resultsContainer.querySelectorAll('.barcode-text')).map(item => item.textContent);
             let fragment = document.createDocumentFragment()
             for (let item of result.barcodeResultItems) {
+                if (ScanType === this.EnumCapturedScanType.IMAGE && item.type !== this.EnumCapturedResultItemType.CRIT_BARCODE) {
+                    console.log('Not a barcode item:', item)
+                    continue; // check if captured result item is a barcode
+                }
+
                 // 添加扫描结果
                 let barcodeText = item.text
                 let barcodeFormat = item.formatString
@@ -159,6 +203,7 @@ let barcodeDecode = {
                     fragment.appendChild(newChild)
                 }else {
                     // Duplicate barcode
+                    // console.log('Duplicate barcode:', newBarcodeContent)
                 }
             }
 
@@ -198,6 +243,9 @@ let barcodeDecode = {
         sessionStorage.clear()
     },
 
+    /**
+     * 和背景页简历连接，用于插件
+     */
     initConnect: function(){
         let extensionNamespace
         if (window.chrome && window.chrome.runtime && window.chrome.runtime.connect) { // chrome
@@ -223,6 +271,9 @@ let barcodeDecode = {
         window.resizeTo(window.screen.width, window.screen.height)
     },
 
+    /**
+     * 和背景页间的消息通信
+     */
     popupSendMessage2Background: function(message){
         if (!message) {
             return
@@ -245,6 +296,6 @@ let barcodeDecode = {
 window.onload = async function (){
     console.log('window onload, init dynamsoft')
     barcodeDecode.init()
-
+    // 初始化插件处理
     barcodeDecode.initConnect()
 }

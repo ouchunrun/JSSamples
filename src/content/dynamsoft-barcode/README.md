@@ -86,3 +86,7 @@
 </body>
 </html>
 ```
+
+3.图片识别：
+
+- 参考[Hello World in Angular: Read barcodes from camera and images in an Angular application.](https://github.com/Dynamsoft/barcode-reader-javascript-samples/tree/main/hello-world/angular)
