@@ -4,6 +4,11 @@
 
 - 1.添加 `manifest.json` 插件加载配置
 
+- 2.Github 部署后，扫描未返回结果问题
+  - 原因：debug发现，代码中返回了"No license found for Dynamsoft Barcode Reader."错误
+  - 扫描实现通过 _captureInWorker 接口，在worker中解析处理
+  - 处理：调用initDynamsoftLicense接口，初始化lisense，避免出现"No license found
+
 ## 2024-10·24
 
 - 1.去除外部服务器请求

@@ -30,8 +30,8 @@ let barcodeDecode = {
 
         this.clearAllStorage()
 
-        // 非必须
-        // this.initDynamsoftLicense()
+        // worker 解析条码时会校验license，否则返回 “No license found for Dynamsoft Barcode Reader.”错误
+        this.initDynamsoftLicense()
 
         this.startScanning()
     },
@@ -115,7 +115,7 @@ let barcodeDecode = {
      * 处理扫描结果
      */
     handleBarcodeDecodeResult: function(result){
-        console.log('result.barcodeResultItems:', result.barcodeResultItems)
+        // console.warn('result.barcodeResultItems:', result.barcodeResultItems)
         if (result.barcodeResultItems?.length > 0) {
             let preBarcodeList = Array.from(this.resultsContainer.querySelectorAll('.barcode-text')).map(item => item.textContent);
             let fragment = document.createDocumentFragment()

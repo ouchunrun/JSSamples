@@ -1587,12 +1587,17 @@
                                    const t = Date.now() - e;
                                    t > 10 && re._onLog(`draw result time: ${t}`)
                               }
-                         } const r = {
+                         }
+                    const r = {
                          originalImageHashId: i.originalImageHashId,
                          originalImageTag: i.originalImageTag,
                          errorCode: i.errorCode,
                          errorString: i.errorString
                     };
+                    if(i.errorCode !== 0) {
+                         console.log('[Dynamsoft] Error:', i.errorString)
+                    }
+
                     for (let t of this._resultReceiverSet) t.onDecodedBarcodesReceived && i.barcodeResultItems && t.onDecodedBarcodesReceived(Object.assign(Object.assign({}, r), {
                          barcodeResultItems: i.barcodeResultItems.filter((t => !t.isFilter))
                     })), t.onRecognizedTextLinesReceived && i.textLineResultItems && t.onRecognizedTextLinesReceived(Object.assign(Object.assign({}, r), {
@@ -1631,13 +1636,20 @@
                this._checkIsDisposed();
                const i = await this.containsTask(e);
                let r;
-               if (await at(i), this._dynamsoft = !1, u(t)) r = await this._captureDsimage(t, e);
-               else if ("string" == typeof t) r = "data:image/" == t.substring(0, 11) ? await this._captureBase64(t, e) : await this._captureUrl(t, e);
-               else if (t instanceof Blob) r = await this._captureBlob(t, e);
-               else if (t instanceof HTMLImageElement) r = await this._captureImage(t, e);
-               else if (t instanceof HTMLCanvasElement) r = await this._captureCanvas(t, e);
-               else {
-                    if (!(t instanceof HTMLVideoElement)) throw new TypeError("'capture(imageOrFile, templateName)': Type of 'imageOrFile' should be 'DSImageData', 'Url', 'Base64', 'Blob', 'HTMLImageElement', 'HTMLCanvasElement', 'HTMLVideoElement'.");
+               if (await at(i), this._dynamsoft = !1, u(t)) {
+                    r = await this._captureDsimage(t, e);
+               } else if ("string" == typeof t) {
+                    r = "data:image/" == t.substring(0, 11) ? await this._captureBase64(t, e) : await this._captureUrl(t, e);
+               } else if (t instanceof Blob) {
+                    r = await this._captureBlob(t, e);
+               } else if (t instanceof HTMLImageElement) {
+                    r = await this._captureImage(t, e);
+               } else if (t instanceof HTMLCanvasElement) {
+                    r = await this._captureCanvas(t, e);
+               } else {
+                    if (!(t instanceof HTMLVideoElement)) {
+                         throw new TypeError("'capture(imageOrFile, templateName)': Type of 'imageOrFile' should be 'DSImageData', 'Url', 'Base64', 'Blob', 'HTMLImageElement', 'HTMLCanvasElement', 'HTMLVideoElement'.");
+                    }
                     r = await this._captureVideo(t, e)
                }
                return r
