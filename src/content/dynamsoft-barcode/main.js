@@ -196,10 +196,53 @@ let barcodeDecode = {
         
         // 清除 sessionStorage
         sessionStorage.clear()
-    }
+    },
+
+    initConnect: function(){
+        let extensionNamespace
+        if (window.chrome && window.chrome.runtime && window.chrome.runtime.connect) { // chrome
+            extensionNamespace = chrome
+        } else if (window.browser && window.browser.runtime && window.browser.runtime.connect) { // firefox
+            extensionNamespace = browser
+        }
+
+        this.extensionNamespace = extensionNamespace
+        console.log('init connect to backgroundJS')
+        let popupPort = this.extensionNamespace.runtime.connect({ name: 'popup' })
+        if (popupPort) {
+            // 监听连接断开事件，避免同时打开多个popup页面
+            popupPort.onDisconnect.addListener(function (e) {
+                console.log('Connection is disconnected, close Popup page')
+                window.close()
+            })
+            this.popupPort = popupPort
+        }
+    },
+
+    popupSendMessage2Background: function(message){
+        if (!message) {
+            return
+        }
+    
+        message.requestType = 'popupMessage2Background'
+        try {
+            this.popupPort.postMessage(message)
+        } catch (e) {
+            console.log('popupSendMessage2Background error :', e)
+            this.initConnect()
+    
+            if (this.popupPort) {
+                this.popupPort.postMessage(message)
+            }
+        }
+    },
 }
 
 window.onload = async function (){
     console.log('window onload, init dynamsoft')
     barcodeDecode.init()
+
+    barcodeDecode.initConnect()
+
+    window.resizeTo(window.screen.width, window.screen.height)
 }

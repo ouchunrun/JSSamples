@@ -1,0 +1,29 @@
+{
+    "name": "Barcode Scanner",
+    "version": "1.0.1",
+    "description": "Scan barcode with camera.",
+    "manifest_version": 3,
+    "action":
+    {
+      "default_title": "GRP Click2Dial",
+      "default_icon": "icon/icons8-barcode-scanner-64.png"
+    },
+    "background": {
+      "service_worker": "background/background.js",
+      "type": "module"
+    },
+    "icons": {
+      "16": "icon/icons8-barcode-scanner-64.png",
+      "48": "icon/icons8-barcode-scanner-64.png",
+      "128": "icon/icons8-barcode-scanner-64.png"
+    },
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "permissions": [
+      "storage",
+      "tabs",
+      "notifications"
+    ]
+  }
+  
