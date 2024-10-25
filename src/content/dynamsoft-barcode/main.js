@@ -206,17 +206,21 @@ let barcodeDecode = {
             extensionNamespace = browser
         }
 
-        this.extensionNamespace = extensionNamespace
-        console.log('init connect to backgroundJS')
-        let popupPort = this.extensionNamespace.runtime.connect({ name: 'popup' })
-        if (popupPort) {
-            // 监听连接断开事件，避免同时打开多个popup页面
-            popupPort.onDisconnect.addListener(function (e) {
-                console.log('Connection is disconnected, close Popup page')
-                window.close()
-            })
-            this.popupPort = popupPort
+        if(extensionNamespace) {
+            this.extensionNamespace = extensionNamespace
+            console.log('init connect to backgroundJS')
+            let popupPort = this.extensionNamespace.runtime.connect({ name: 'popup' })
+            if (popupPort) {
+                // 监听连接断开事件，避免同时打开多个popup页面
+                popupPort.onDisconnect.addListener(function (e) {
+                    console.log('Connection is disconnected, close Popup page')
+                    window.close()
+                })
+                this.popupPort = popupPort
+            }
         }
+   
+        window.resizeTo(window.screen.width, window.screen.height)
     },
 
     popupSendMessage2Background: function(message){
@@ -243,6 +247,4 @@ window.onload = async function (){
     barcodeDecode.init()
 
     barcodeDecode.initConnect()
-
-    window.resizeTo(window.screen.width, window.screen.height)
 }
