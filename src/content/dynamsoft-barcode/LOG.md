@@ -1,5 +1,9 @@
 # Change Log
 
+## 2024-10-28
+
+- 1.页面添加error tip 提示
+
 ## 2024-10·25
 
 - 1.添加 `manifest.json` 插件加载配置

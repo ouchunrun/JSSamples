@@ -127,3 +127,30 @@ button:disabled {
 .file-upload{
     display: none;
 }
+
+.decode-tip {
+    user-select: text;
+    position: relative;
+    bottom: 20px;
+    position: absolute;
+    width: 70%;
+    z-index: 999;
+    text-align: center;
+
+}
+
+.decode-tip-text{
+    background: #222;
+    color: red;
+    line-height: 30px;
+    padding: 0 10px;
+    display: inline-block;
+}
+
+.show{
+    display: block;
+}
+
+.hide{
+    display: none;
+}

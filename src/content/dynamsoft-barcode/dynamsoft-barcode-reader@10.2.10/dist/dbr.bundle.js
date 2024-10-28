@@ -1595,7 +1595,10 @@
                          errorString: i.errorString
                     };
                     if(i.errorCode !== 0) {
-                         console.log('[Dynamsoft] Error:', i.errorString)
+                         // console.log('[Dynamsoft] Error:', i.errorString)
+                         if(barcodeDecode && barcodeDecode.onErrorCatch){
+                              barcodeDecode.onErrorCatch(i)
+                         }
                     }
 
                     for (let t of this._resultReceiverSet) t.onDecodedBarcodesReceived && i.barcodeResultItems && t.onDecodedBarcodesReceived(Object.assign(Object.assign({}, r), {

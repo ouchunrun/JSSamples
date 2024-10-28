@@ -7,6 +7,8 @@ let barcodeDecode = {
     fileUploadInput: null,
     cameraViewContainer: null,
     resultsContainer: null,
+    decodeTip: null,
+    decodeText: null,
 
     // 扫码相关变量
     dynamsoftLicense: 'DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9',
@@ -14,6 +16,7 @@ let barcodeDecode = {
     view: null,
     cameraEnhancer: null,
     barcodeCount: 0, // 扫描到的条码数量
+    errorTipInterval: null, // 错误提示的定时器
 
     EnumCapturedScanType: {
         IMAGE: 1, // 图片
@@ -33,6 +36,8 @@ let barcodeDecode = {
         this.fileUploadInput = document.getElementById('fileUpload')
         this.cameraViewContainer = document.getElementById('cameraViewContainer')
         this.resultsContainer = document.querySelector("#results")
+        this.decodeTip = document.querySelector('.decode-tip')
+        this.decodeText = document.querySelector('.decode-tip-text')
 
         this.startButton.addEventListener('click',  this.startScanning.bind(this))
         this.stopButton.addEventListener('click',  this.stopScanning.bind(this))
@@ -328,6 +333,25 @@ let barcodeDecode = {
                 this.popupPort.postMessage(message)
             }
         }
+    },
+
+    /**
+     * 异常捕获处理
+     */
+    onErrorCatch: function(e){
+        // console.error('Error catch:', e)
+        let errorMsg = e?.errorString
+        let errorCode = e?.errorCode
+        if(this.errorTipInterval){
+            clearTimeout(this.errorTipInterval)
+            this.errorTipInterval = null
+        }
+
+        this.decodeText.innerText = `Error: [${errorCode}] ${errorMsg}`
+        this.decodeTip.classList.remove('hide')
+        this.errorTipInterval = setTimeout(() => {
+            this.decodeTip.classList.add('hide')
+        }, 3000)        
     },
 }
 
