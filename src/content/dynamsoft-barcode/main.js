@@ -46,8 +46,6 @@ let barcodeDecode = {
         this.stopButton.disabled = true
         this.startButton.disabled = false
 
-        this.clearAllStorage()
-
         // worker 解析条码时会校验license，否则返回 “No license found for Dynamsoft Barcode Reader.”错误
         this.initDynamsoftLicense()
 
@@ -281,9 +279,55 @@ let barcodeDecode = {
         console.log('clear all storage')
          // 清除 localStorage
         localStorage.clear()
-        
         // 清除 sessionStorage
         sessionStorage.clear()
+        // 清除所有缓存
+        this.clearCache()
+        // 清除cookies
+        this.clearAllCookies()
+        // 清除indexedDB
+        const knownDatabases = ['dynamdlsinfo', 'dynamdlsunsZGpJPQ==ADBkVzVrWldacGJtVms=', 'dynamjssdkhello', 'dynamltsinfo']
+        this.deleteAllDatabases(knownDatabases)
+    },
+
+    clearCache: async function (cacheName) {
+        const isDeleted = await caches.delete(cacheName);
+        if (isDeleted) {
+            console.log(`cache ${cacheName} cleared`)
+        } else {
+            console.log(`cache ${cacheName} not exist or clear failed`)
+        }
+    },
+
+    clearAllCookies: function () {
+        const cookies = document.cookie.split(';')
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i]
+            const eqPos = cookie.indexOf('=')
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie
+            document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
+        console.log('All cookies cleared')
+    },
+
+    deleteAllDatabases: function (databases) {
+        if (databases.length === 0) {
+            console.warn('All databases deleted successfully')
+            return
+        }
+    
+        const dbName = databases.shift()
+        const request = indexedDB.deleteDatabase(dbName)
+        let This = this
+        request.onsuccess = function(event) {
+            console.log(`Database ${dbName} deleted successfully`)
+            This.deleteAllDatabases(databases)
+        }
+    
+        request.onerror = function(event) {
+            console.error(`An error occurred while deleting database ${dbName}`, event.target.error)
+            This.deleteAllDatabases(databases)
+        }
     },
 
     /**
@@ -356,6 +400,7 @@ let barcodeDecode = {
 }
 
 window.onload = async function (){
+    barcodeDecode.clearAllStorage()
     console.log('window onload, init dynamsoft')
     barcodeDecode.init()
     // 初始化插件处理
