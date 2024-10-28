@@ -155,28 +155,32 @@ let barcodeDecode = {
      */
     startScanning: async function (){
         console.log('start scanning')
-        this.cameraViewContainer.innerHTML = ''
-        this.startButton.disabled = true
-        this.stopButton.disabled = false
-
-        this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
-        this.view = await Dynamsoft.DCE.CameraView.createInstance()
-        this.cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(this.view)
-        this.router.setInput(this.cameraEnhancer)
+        try {
+            this.cameraViewContainer.innerHTML = ''
+            this.startButton.disabled = true
+            this.stopButton.disabled = false
+    
+            this.router = await Dynamsoft.CVR.CaptureVisionRouter.createInstance()
+            this.view = await Dynamsoft.DCE.CameraView.createInstance()
+            this.cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(this.view)
+            this.router.setInput(this.cameraEnhancer)
+            
+            // 添加video显示视频流
+            let UIElement = await this.view.getUIElement()
+            this.UIElement = UIElement
+            this.updateCameraViewStyle()
+            this.cameraViewContainer.append(UIElement)
+            // 处理扫描结果
+            this.router.addResultReceiver({ onDecodedBarcodesReceived: this.handleBarcodeDecodeResult.bind(this) })
         
-        // 添加video显示视频流
-        let UIElement = await this.view.getUIElement()
-        this.UIElement = UIElement
-        this.updateCameraViewStyle()
-        this.cameraViewContainer.append(UIElement)
-        // 处理扫描结果
-        this.router.addResultReceiver({ onDecodedBarcodesReceived: this.handleBarcodeDecodeResult.bind(this) })
-    
-        let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter()
-        await this.router.addResultFilter(filter)
-    
-        await this.cameraEnhancer.open()
-        await this.router.startCapturing("ReadSingleBarcode")
+            let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter()
+            await this.router.addResultFilter(filter)
+        
+            await this.cameraEnhancer.open()
+            await this.router.startCapturing("ReadSingleBarcode")
+        }catch (e) {
+            this.onErrorCatch(e)
+        }
     },
 
     /**
@@ -384,18 +388,28 @@ let barcodeDecode = {
      */
     onErrorCatch: function(e){
         // console.error('Error catch:', e)
-        let errorMsg = e?.errorString
-        let errorCode = e?.errorCode
+        let errorMsg = e.errorString || e        
+        let errorText = ''
+        if(e.errorCode) {
+            errorText = `Error: [${e.errorCode}] ${errorMsg}`
+        }else {
+            errorText = `Error: ${errorMsg}`
+        }
+        
         if(this.errorTipInterval){
             clearTimeout(this.errorTipInterval)
             this.errorTipInterval = null
         }
 
-        this.decodeText.innerText = `Error: [${errorCode}] ${errorMsg}`
-        this.decodeTip.classList.remove('hide')
-        this.errorTipInterval = setTimeout(() => {
-            this.decodeTip.classList.add('hide')
-        }, 3000)        
+        if(this.decodeText.innerText !== errorText) {
+            console.error('Error catch:', e)
+            this.decodeText.innerText = errorText
+            this.decodeTip.classList.remove('hide')
+        }
+
+        // this.errorTipInterval = setTimeout(() => {
+        //     this.decodeTip.classList.add('hide')
+        // }, 3000)        
     },
 }
 
