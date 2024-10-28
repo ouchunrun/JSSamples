@@ -136,6 +136,7 @@ BarcodeReader = {
       BarcodeReader.OrientationCallback(e.data.result);
       return;
     }
+    
     var filteredData = [];
     for (var i = 0; i < e.data.result.length; i++) {
       if (BarcodeReader.Decoded.indexOf(e.data.result[i].Value) === -1 || BarcodeReader.Config.ForceUnique === false) {

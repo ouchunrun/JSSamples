@@ -4,6 +4,9 @@ let javascriptBarcodeReader = {
     barcodeCount: 0, // 扫描到的条码数量
     errorTipInterval: null, // 错误提示的定时器
 
+    /**
+     * 初始化设置
+     */
     init: function(){
         let This = this
         this.startButton = document.getElementById('start')
@@ -14,7 +17,10 @@ let javascriptBarcodeReader = {
         this.resultsContainer = document.querySelector("#results")
         this.decodeTip = document.querySelector('.decode-tip')
         this.decodeText = document.querySelector('.decode-tip-text')
+        this.video = document.getElementById('video')
         
+        this.startButton.addEventListener('click', This.starScanning.bind(this))
+        this.stopButton.addEventListener('click', This.stopScanning.bind(this))
         this.captureImageButton.addEventListener('click', function() {
             console.log('image upload button click')
             This.fileUploadInput.click()
@@ -22,14 +28,15 @@ let javascriptBarcodeReader = {
         });
         this.fileUploadInput.addEventListener('change', This.handleInputOnchangeEvent.bind(this), false)
 
-        this.startButton.disabled = true
-        this.stopButton.disabled = true
-
         console.log('init BarcodeReader...')
         BarcodeReader.Init()
-        BarcodeReader.SetImageCallback(This.handleImageBarcodeReaderCallback.bind(this))
+        BarcodeReader.SetImageCallback(This.handleBarcodeReaderCallback.bind(this))
+        BarcodeReader.SetStreamCallback(This.handleBarcodeReaderCallback.bind(this))
     },
 
+    /**
+     * 处理文件上传input的change事件
+     */
     handleInputOnchangeEvent: function(evt){
         let This = this
         let file = evt.target.files[0]
@@ -45,18 +52,52 @@ let javascriptBarcodeReader = {
             img.onerror = function() {
                 console.error('Error reading file:', this.src)
             }
+            // console.log('Decode image in BarcodeReader, img:', reader.result)
+            console.log('Decode image in BarcodeReader')
             BarcodeReader.DecodeImage(img)
+
             This.fileUploadInput.value = ''
         }
         reader.readAsDataURL(file)
     },
 
-    handleImageBarcodeReaderCallback: function (barcodeResultItems) {
+    /**
+     * 开始解码
+     */
+    starScanning: async function (){
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+            this.video.srcObject = stream
+            console.log('stream:', stream)
+            // TODO: 这里参数需要传递 video Element， 不是stream
+            BarcodeReader.DecodeStream(this.video)
+
+            this.startButton.disabled = true
+            this.stopButton.disabled = false
+            this.captureImageButton.disabled = true
+          } catch (error) {
+            console.error('Error accessing camera:', error)
+            this.onErrorCatch(error)
+          }
+    },
+    
+    stopScanning: function(){
+        console.log('stop scanning')
+        BarcodeReader.StopStreamDecode()
+        this.startButton.disabled = false
+        this.stopButton.disabled = true
+        this.captureImageButton.disabled = false
+    },
+
+    /**
+     * 处理解码结果
+     */
+    handleBarcodeReaderCallback: function (barcodeResultItems) {
         console.warn('get barcode reader result:', barcodeResultItems)
         this.captureImageButton.disabled = false
 
         if (!barcodeResultItems.length) {
-            this.onErrorCatch({ errorString: '条形码读取失败'})
+            this.onErrorCatch({ errorString: 'Decode error'})
             return
         }
         
@@ -115,10 +156,9 @@ let javascriptBarcodeReader = {
       }
     },
 
-    stopScanning: function(){
-        console.log('stop scanning')
-    },
-
+    /**
+     * error 处理和相似
+     */
     onErrorCatch: function(e){
         let errorMsg = e.errorString || e        
         let errorText = ''
