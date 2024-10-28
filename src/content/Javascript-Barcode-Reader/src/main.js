@@ -1,5 +1,4 @@
 
-
 let javascriptBarcodeReader = {
     barcodeCount: 0, // 扫描到的条码数量
     errorTipInterval: null, // 错误提示的定时器
@@ -67,6 +66,7 @@ let javascriptBarcodeReader = {
     starScanning: async function (){
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+            this.stream = stream
             this.video.srcObject = stream
             console.log('stream:', stream)
             // TODO: 这里参数需要传递 video Element， 不是stream
@@ -81,9 +81,20 @@ let javascriptBarcodeReader = {
           }
     },
     
+    /**
+     * 停止解码
+     */
     stopScanning: function(){
         console.log('stop scanning')
         BarcodeReader.StopStreamDecode()
+        if(this.stream){
+            this.stream.getTracks().forEach(track => {
+                console.log('Stop track', track.label)
+                track.stop()
+            })
+        }
+        this.stream = null
+        this.video.srcObject = null
         this.startButton.disabled = false
         this.stopButton.disabled = true
         this.captureImageButton.disabled = false
