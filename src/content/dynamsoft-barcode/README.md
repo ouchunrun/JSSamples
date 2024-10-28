@@ -8,6 +8,8 @@
 # 参考
 
 ## [Dynamsoft Barcode Reader JavaScript Edition 10.x 版本简介](https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/)
+  
+Online Demo: https://demo.dynamsoft.com/barcode-reader-js/common-oned-twod?source=dbrdemo
 
 1.快速集成：
 

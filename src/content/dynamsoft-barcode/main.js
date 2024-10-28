@@ -57,6 +57,10 @@ let barcodeDecode = {
      */
     initDynamsoftLicense: function(){
         console.log('Init dynamsoft license')
+        // let BUILD_ENV = 'publish'
+        // let Z = ["build-test", "dev"].includes(BUILD_ENV) ? "DLS2eyJoYW5kc2hha2VDb2RlIjoiODAwMC04MDAwIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vMTkyLjE2OC44LjEyMi9kbHMvIiwib3JnYW5pemF0aW9uSUQiOiI4MDAwIiwiY2hlY2tDb2RlIjotMTA1NjUzOTM3M30=" : "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAwLWRicl9qc19kZW1vIiwib3JnYW5pemF0aW9uSUQiOiIyMDAwMDAiLCJzZXNzaW9uUGFzc3dvcmQiOiJKVWp3VHVuc0hSOGtPUmxpOHNONEI2ZllqY3l2UDVwbjdnS0NwN3c1cW9UZkJVUkFIa3JtOE9Nbkt2VC8xSk5raWRGVHlIa3gzSnlOUmlPMUp2bnIwZz09In0=";
+        // console.warn('初始化license:', Z)
+        // Dynamsoft.License.LicenseManager.initLicense(Z)
         Dynamsoft.License.LicenseManager.initLicense(this.dynamsoftLicense)
         Dynamsoft.Core.CoreModule.loadWasm(["dbr"])
     },
