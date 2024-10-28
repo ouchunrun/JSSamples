@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Javascript Barcode Reader</title>
+    <link href="#" rel="shortcut icon">
+    <link rel="stylesheet" href="css/main.css">
+
+    <!-- online link -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/40076/DecoderWorker.js"></script>
+    <script src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/40076/exif.js"></script>
+    <script src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/40076/BarcodeReader.js"></script> -->
+
+    <!-- local link -->
+    <script src="src/DecoderWorker.js"></script>
+    <script src="src/exif.js"></script>
+    <script src="src/BarcodeReader.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container-left">
+          <div class="container-title">
+            <span class="container-result-title">Results</span>
+          </div>
+          <div id="results" class="barcode-list" disabled></div>
+        </div>
+        <div class="container-right">
+          <div id="cameraViewContainer" class="cameraView"></div>
+    
+          <div class="operation">
+            <button id="start">Start Scan</button>
+            <button id="stop" disabled>Stop Scan</button>
+            <button id="captureImage">Read image</button>
+            <input id="fileUpload" class="file-upload" type="file" accept="image/*" multiple placeholder="上传本地条码图片">
+          </div>
+    
+          <div class="decode-tip hide">
+            <span class="decode-tip-text"></span>
+          </div>
+        </div>
+      </div>
+
+    <script src="src/main.js"></script>
+</body>
+
+</html>

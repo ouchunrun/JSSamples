@@ -10,11 +10,12 @@
 ## [Dynamsoft Barcode Reader JavaScript Edition 10.x 版本简介](https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/)
   
 Online Demo: https://demo.dynamsoft.com/barcode-reader-js/common-oned-twod?source=dbrdemo
+Online Demo: https://demo.dynamsoft.com/Samples/DBR/JS/hello-world/hello-world.html?ver=10.4.20&utm_source=guide
 
 1.快速集成：
 
 ```js
-    <!DOCTYPE html>
+    <!DOCTYPE html
     <html>
     <body>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.4.2001/dist/dbr.bundle.js"></script>
