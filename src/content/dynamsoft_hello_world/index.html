@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <link href="icon/icons8-barcode-scanner-64.png" rel="shortcut icon">
+  <link rel="stylesheet" href="style.css">
+  <title>Dynamsoft Barcode Reader Sample - Hello World (Decode via Camera)</title>
+
+  <!-- online link -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.4.2001/dist/dbr.bundle.js"></script> -->
+  <script src="dynamsoft-barcode-reader-bundle@10.4.2001/dist/dbr.bundle.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="container-left">
+      <div class="container-title">
+        <span class="container-result-title">Results</span>
+      </div>
+      <div id="results" class="barcode-list" disabled></div>
+    </div>
+    <div class="container-right">
+      <div id="cameraViewContainer" class="cameraView"></div>
+
+      <div class="operation">
+        <button id="start">Start Scan</button>
+        <button id="stop" disabled>Stop Scan</button>
+        <button id="captureImage">Read image</button>
+        <input id="fileUpload" class="file-upload" type="file" accept="image/*" multiple placeholder="上传本地条码图片">
+      </div>
+
+      <div class="decode-tip hide">
+        <span class="decode-tip-text"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+
+</html>
