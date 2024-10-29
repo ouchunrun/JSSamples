@@ -5,98 +5,99 @@
 - 2.支持通过摄像头扫描
 - 3.支持条形码和二维码识别
 
-# 参考
-
-## [Dynamsoft Barcode Reader JavaScript Edition 10.x 版本简介](https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/)
-  
-Online Demo: https://demo.dynamsoft.com/barcode-reader-js/common-oned-twod?source=dbrdemo
-Online Demo: https://demo.dynamsoft.com/Samples/DBR/JS/hello-world/hello-world.html?ver=10.4.20&utm_source=guide
-
-1.快速集成：
+# Demo参考 hello-world samples
 
 ```js
-    <!DOCTYPE html
-    <html>
-    <body>
+<h1>Hello World (Decode via Camera)</h1>
+    <div id="camera-view-container" style="width: 100%; height: 80vh"></div>
+    Results:<br />
+    <div id="results" style="width: 100%; height: 10vh; overflow: auto; white-space: pre-wrap"></div>
     <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.4.2001/dist/dbr.bundle.js"></script>
-    <div id="camera-view-container" style="width: 100%; height: 60vh"></div>
-    <textarea id="results" style="width: 100%; min-height: 10vh; font-size: 3vmin; overflow: auto" disabled></textarea>
     <script>
-    Dynamsoft.License.LicenseManager.initLicense("DLS2eyJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSJ9");
-    Dynamsoft.Core.CoreModule.loadWasm(["dbr"]);
-    (async () => {
-        let cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+      /** LICENSE ALERT - README
+       * To use the library, you need to first specify a license key using the API "initLicense()" as shown below.
+       */
 
-        let cameraView = await Dynamsoft.DCE.CameraView.createInstance();
-        let cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
-        document.querySelector("#camera-view-container").append(cameraView.getUIElement());
-        cvRouter.setInput(cameraEnhancer);
+      Dynamsoft.License.LicenseManager.initLicense(
+        "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAwLWRicl9qc19zYW1wbGVzIiwib3JnYW5pemF0aW9uSUQiOiIyMDAwMDAifQ=="
+      );
 
-        const resultsContainer = document.querySelector("#results");
-        cvRouter.addResultReceiver({ onDecodedBarcodesReceived: (result) => {
-        if (result.barcodeResultItems.length > 0) {
-            resultsContainer.textContent = '';
-            for (let item of result.barcodeResultItems) {
-            resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
-            }
+      /**
+       * You can visit https://www.dynamsoft.com/customer/license/trialLicense?utm_source=samples&product=dbr&package=js to get your own trial license good for 30 days.
+       * Note that if you downloaded this sample from Dynamsoft while logged in, the above license key may already be your own 30-day trial license.
+       * For more information, see https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/user-guide/index.html?ver=10.4.2001&cVer=true#specify-the-license&utm_source=samples or contact support@dynamsoft.com.
+       * LICENSE ALERT - THE END
+       */
+
+      // Optional. Used to load wasm resources in advance, reducing latency between video playing and barcode decoding.
+      Dynamsoft.Core.CoreModule.loadWasm(["DBR"]);
+      // Defined globally for easy debugging.
+      let cameraEnhancer, cvRouter;
+
+      (async () => {
+        try {
+          // Create a `CameraEnhancer` instance for camera control and a `CameraView` instance for UI control.
+          const cameraView = await Dynamsoft.DCE.CameraView.createInstance();
+          cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
+          // Get default UI and append it to DOM.
+          document.querySelector("#camera-view-container").append(cameraView.getUIElement());
+
+          // Create a `CaptureVisionRouter` instance and set `CameraEnhancer` instance as its image source.
+          cvRouter = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
+          cvRouter.setInput(cameraEnhancer);
+
+          // Define a callback for results.
+          cvRouter.addResultReceiver({
+            onDecodedBarcodesReceived: (result) => {
+              if (!result.barcodeResultItems.length) return;
+
+              const resultsContainer = document.querySelector("#results");
+              resultsContainer.textContent = "";
+              console.log(result);
+              for (let item of result.barcodeResultItems) {
+                resultsContainer.textContent += `${item.formatString}: ${item.text}\n\n`;
+              }
+            },
+          });
+
+          // Filter out unchecked and duplicate results.
+          const filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
+          // Filter out unchecked barcodes.
+          filter.enableResultCrossVerification("barcode", true);
+          // Filter out duplicate barcodes within 3 seconds.
+          filter.enableResultDeduplication("barcode", true);
+          await cvRouter.addResultFilter(filter);
+
+          // Open camera and start scanning single barcode.
+          await cameraEnhancer.open();
+          await cvRouter.startCapturing("ReadSingleBarcode");
+        } catch (ex) {
+          let errMsg = ex.message || ex;
+          console.error(errMsg);
+          alert(errMsg);
         }
-        }});
-
-        let filter = new Dynamsoft.Utility.MultiFrameResultCrossFilter();
-        filter.enableResultCrossVerification('barcode', true);
-        filter.enableResultDeduplication('barcode', true);
-        await cvRouter.addResultFilter(filter);
-
-        await cameraEnhancer.open();
-        await cvRouter.startCapturing("ReadSingleBarcode");
-    })();
+      })();
     </script>
-    </body>
-    </html>
 ```
 
-2.[简易条码扫描仪](https://github.com/Dynamsoft/easy-barcode-scanner)
 
-> Easy Barcode Scanner 是 Dynamsoft Barcode Reader SDK 的轻量级、用户友好的包装器。它简化了条形码扫描过程，使其能够以最小的努力更轻松地集成到您的 Web 应用程序中。
+## 链接官网
 
-- [easy-barcode-scanner Online Demo](https://dynamsoft.github.io/easy-barcode-scanner/index.html)
+- 1.Official Online Demo:
+  - [Github Dynamsoft Barcode Reader samples for the web](https://github.com/Dynamsoft/barcode-reader-javascript-samples)
+- 2.Popular Examples -- Hello World
+  - [Barcode Reader for Your Website - User Guide](https://www.dynamsoft.com/barcode-reader/docs/web/programming/javascript/user-guide/)
+  - [github](https://github.com/Dynamsoft/barcode-reader-javascript-samples/blob/v10.4.20/hello-world/hello-world.html)
+  - [online Demo](https://demo.dynamsoft.com/Samples/DBR/JS/hello-world/hello-world.html?ver=10.4.20&utm_source=guide)
+  
+- 2.简易条码扫描仪
+  - [Github link](https://github.com/Dynamsoft/easy-barcode-scanner)
+  - [easy-barcode-scanner Online Demo](https://dynamsoft.github.io/easy-barcode-scanner/index.html)
 
-- 特征：
-  - 支持基于视频的条码扫描
-  - 轻松处理多个条形码
-  - 只需几行代码即可轻松集成
 
-- 开箱即用的扫描
+- 3.UNPKG 资源下载
+  - [地址](https://unpkg.com/browse/dynamsoft-barcode-reader@10.2.10/)
 
-```js
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
-</head>
-<body>
-  <button id="btn-scan">scan</button>
-  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@10.2.1000/dist/dbr.bundle.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/Dynamsoft/easy-barcode-scanner@10.2.1009/dist/easy-barcode-scanner.js"
-    data-license=""></script>
-  <script>
-    document.getElementById('btn-scan').addEventListener('click',async()=>{
-      try{
-        let txt = await EasyBarcodeScanner.scan();
-        alert(txt);
-      }catch(ex){
-        let errMsg = ex.message || ex;
-        console.error(errMsg);
-        alert(errMsg);
-      }
-    });
-  </script>
-</body>
-</html>
-```
+# 说明
 
-3.图片识别：
-
-- 参考[Hello World in Angular: Read barcodes from camera and images in an Angular application.](https://github.com/Dynamsoft/barcode-reader-javascript-samples/tree/main/hello-world/angular)
+该Demo不可用，因为license无效。官网定期更新Demo中的依赖版本，一个Demo版本无法长期使用，只能短暂试用。
