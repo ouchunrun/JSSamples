@@ -19,7 +19,14 @@
           <div id="results" class="barcode-list" disabled></div>
         </div>
         <div class="container-right">
-          <div id="cameraViewContainer" class="cameraView"></div>
+          <div id="cameraViewContainer" class="cameraView">
+            <select name="" id="videoList" class="select-camera">
+              <option value="0">Select Camera</option>
+            </select>  
+            <video id="video" class="video-container" autoplay></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+            
+          </div>
     
           <div class="operation">
             <button id="start">Start Scan</button>
