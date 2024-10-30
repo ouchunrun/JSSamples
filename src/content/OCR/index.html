@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="#" rel="shortcut icon">
+    <title>OCR with Tesseract.js</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script> -->
+    <script src="dist/tesseract.js/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="container-left">
+          <div class="container-title">
+            <span class="container-result-title">Results</span>
+          </div>
+          <div id="results" class="barcode-list" disabled></div>
+        </div>
+        <div class="container-right">
+          <div id="cameraViewContainer" class="cameraView"></div>
+    
+          <div class="operation">
+            <button id="start">Start Scan</button>
+            <button id="stop" disabled>Stop Scan</button>
+            <button id="captureImage">Upload Image</button>
+            <input id="fileUpload" class="file-upload" type="file" accept="image/*" multiple placeholder="上传本地条码图片">
+          </div>
+    
+          <div class="decode-tip hide">
+            <span class="decode-tip-text"></span>
+          </div>
+        </div>
+      </div>
+
+    <script src="src/main.js"></script>
+</body>
+</html>

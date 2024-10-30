@@ -1,0 +1,159 @@
+body {
+    font-family: fangsong;
+    margin: 0;
+    padding: 0;
+    background: #edeff2;
+}
+
+button {
+    user-select: none !important;
+    font-size: 16px;
+    font-size: 16px;
+    vertical-align: middle;
+    text-align: center;
+    line-height: 23px;
+    cursor: pointer;
+    font-weight: bold;
+    height: 50px;
+    width: 150px;
+    background-color: #444;
+    color: rgb(254, 142, 20);
+    border: none;
+    background-color: #000;
+    border-bottom: 1px solid #222222;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    color: #575757;
+}
+
+.container{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    overflow: hidden;
+}
+
+.container-title{
+    height: 60px;
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid #dddddd;
+}
+
+.container-left{
+    position: relative;
+    height: 100%;
+    width: 30%;
+    float: left;
+    background-color: #222 !important;
+    color: aliceblue;
+}
+
+.operation{
+    user-select: text;
+    position: absolute;
+    top: 50%;
+    right: 2px;
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+    transform: translate(0, -50%);
+    z-index: 10;
+}
+
+.container-right{
+    width: 70%;
+    float: right;
+    background: #3232347d;
+}
+
+.container-result-title{
+    height: 60px;
+    line-height: 60px;
+    text-align: left;
+    font-size: xx-large;
+    font-weight: 800;
+    user-select: text;
+}
+
+.cameraView {
+    border: 1px solid #396194;
+    height: calc(100vh);
+    user-select: none;
+}
+
+.cameraView img{
+    height: 300px;
+    margin-right: 10px;
+}
+
+.barcode-list{
+    width: 100%;
+    height: calc(100vh);
+    overflow: auto;
+    padding: 0;
+}
+
+.barcode-list-nav{
+    width: 100%;
+    background: #3232347d;
+    line-height: 40px;
+    margin-bottom: 2px;
+    font-size: 18px;
+}
+
+.barcode-content{
+    display: inline-block;
+    margin: 0px 10px;
+    width: calc(100% - 13px);
+}
+
+.copy-button {
+    color: #fe8e14;
+    position: relative;
+    float: right;
+    right: 5px;
+    display: inline-block;
+    font-weight: bold;
+    line-height: 40px;
+    cursor: pointer;
+    min-width: 60px;
+    text-align: center;
+}
+
+.copy-button-Copied{
+    color: green !important;
+}
+
+.file-upload{
+    display: none;
+}
+
+.decode-tip {
+    user-select: text;
+    position: relative;
+    bottom: 20px;
+    position: absolute;
+    width: 70%;
+    z-index: 999;
+    text-align: center;
+
+}
+
+.decode-tip-text{
+    background: #222;
+    color: red;
+    line-height: 30px;
+    padding: 0 10px;
+    display: inline-block;
+}
+
+.show{
+    display: block;
+}
+
+.hide{
+    display: none;
+}
