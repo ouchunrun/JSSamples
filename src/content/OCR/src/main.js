@@ -26,6 +26,19 @@ let imageRecognizer = {
     EnumCapturedResultItemType: {
         CRIT_BARCODE: 2, // 图片
     },
+
+    devicePatterns: {
+        WP: /WP\d{1,3}$/,
+        GRP: /GRP\d{1,4}[a-zA-Z]{1,3}$/,
+        GCC: /GCC\d{1,4}$/,
+        GWN: /GWN\d{1,4}[a-zA-Z]{1,3}$/,
+        HT: /HT\d{1,4}$/,
+        GVC: /GVC\d{1,4}$/,
+        GAC: /GAC\d{1,4}$/,
+        GSC: /GSC\d{1,4}$/,
+        GDS: /GDS\d{1,4}$/,
+        GXP: /GXP\d{1,4}$/,
+    },
     
     /**
      * 初始化页面元素
@@ -42,6 +55,7 @@ let imageRecognizer = {
         this.decodeText = document.querySelector('.decode-tip-text')
 
         this.deviceSelect = document.getElementById('videoList')
+        this.deviceSelect.addEventListener('change',  this.handleDeviceSelectChange.bind(this))
         this.video = document.getElementById('video')
         this.canvas = document.getElementById('canvas')
         this.video.addEventListener('loadeddata',  this.handleVideoLoadeddata.bind(this))
@@ -165,6 +179,12 @@ let imageRecognizer = {
         }
     },
 
+    handleDeviceSelectChange: function(){
+        console.log('handle device select change')
+        this.stopScanning()
+        this.startCamera()
+    },
+
     /**
      * video加载成功后，开始识别文本
      */
@@ -194,12 +214,9 @@ let imageRecognizer = {
              // 将 canvas 图像转换为 Data URL
             imageUrl = canvas.toDataURL('image/png')
             // console.log('get Video IMAGE Url:', imageUrl)
-
-            // 识别的图像显示在页面上
-            // this.showCapturedImage(imageUrl)
         }
 
-        const result = await this.worker.recognize(imageUrl)
+        const result = await this.worker.recognize(imageUrl, 'eng') // 使用英文模型进行识别
         if(this.videoRecognizer){
             console.log('video recognizer, start next process.')
             this.recognizeText('VIDEO')
@@ -209,16 +226,14 @@ let imageRecognizer = {
     },
 
     /**
-     * 处理扫描结果
+     * 踢出目标文本
      */
-    handleRecognizeResult: function(result, ScanType){
-        if(!result || !result.data || !result.data.text){
-            this.onErrorCatch('No text found')
-            return
-        }
-        
-        console.log('result:', result.data.text)
+    getFormattedScanResult: function (result){
         let resultItems = {}
+        if(!result || !result.data || !result.data.text){
+            return resultItems
+        }
+
         for(let i = 0; i< result.data.lines.length; i++){
             let item = result.data.lines[i]
             let targetText = item.text?.split('\n')[0]
@@ -240,76 +255,152 @@ let imageRecognizer = {
                 //  p/N 962-00143-50A (W) 中截取版本号，并添加小数点： 5.0A
                 const str = targetText.replace(/^[^P/N]+/, '')
                 resultItems.PN = str.split(' ')[1]
-                resultItems.VERSION = str.split(' ')[1]?.split('-')[2].replace(/(\d)(\d)/, '$1.$2')
-            } 
+                resultItems.VERSION = str.split(' ')[1]?.split('-')[2]?.replace(/(\d)(\d)/, '$1.$2')
+            } else {
+                // get DEVICE_MODE
+                let result = this.modelMatched(targetText)
+                if(result && result.matchedString){
+                    resultItems.DEVICE_MODE = result.matchedString
+                }
+            }
+        }
+
+        return resultItems
+    },
+
+    /**
+     * 判断模式是否匹配，匹配则返回设备类型
+     */
+    modelMatched: function(str){
+        for (const [model, pattern] of Object.entries(this.devicePatterns)) {
+            const match = str.match(pattern);
+            if (match) {
+                return { model, matchedString: match[0] }
+            }
+        }
+        return '';
+    },
+    
+    /**
+     * 正则校验MAC地址是否合法
+     */
+    checkMacAddress: function(macAddress){
+        let regex = "([A-Fa-f0-9]{2}){5}[A-Fa-f0-9]{2}"
+        //var regex = "(([A-Fa-f0-9]{2}-){5}[A-Fa-f0-9]{2})|(([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2})"; // 含冒号
+        let regexp = new RegExp(regex)
+        if (!regexp.test(macAddress)) {
+            console.log('Mac地址格式不正确:', macAddress)
+            return false
+        }
+        return true
+    },
+
+    /**
+     * 处理扫描结果
+     */
+    handleRecognizeResult: function(result, ScanType){
+        if(!result || !result.data || !result.data.text){
+            // this.onErrorCatch('No text found')
+            return
         }
         
+        console.log('result:', result.data.text)
+        let resultItems = this.getFormattedScanResult(result)
         console.log("resultItem is:", resultItems)
-        if(Object.keys(resultItems).length > 0){
-            let preBarcodeList = Array.from(this.resultsContainer.querySelectorAll('.barcode-text')).map(item => item.textContent)
-            let fragment = document.createDocumentFragment()
 
-            // 添加扫描结果
-            if(!preBarcodeList.includes(resultItems.MAC)) {
+        if(Object.keys(resultItems).length === 0){
+            // this.onErrorCatch('No text found')
+            return
+        }
+
+        // 校验MAC地址是否合法
+        if(resultItems.MAC && this.checkMacAddress(resultItems.MAC)){
+            let MacId = resultItems.MAC
+            let existItem = document.getElementById(MacId)
+            if(existItem){
+                // 更新设备显示内容， 更新规则为：xxx
+                if(resultItems.VERSION){
+                    let deviceVer = existItem.children[0]
+                    if(deviceVer){
+                        console.log(`Update version as ${resultItems.VERSION}`)
+                        deviceVer.innerText = `${resultItems.VERSION}`
+                        deviceVer.setAttribute('device_ver', resultItems.VERSION)
+                    }
+                }
+
+                if(resultItems.DEVICE_MODE){
+                    let deviceMode = existItem.children[1]
+                    if(deviceMode){
+                        console.log(`Update mode as ${resultItems.DEVICE_MODE}`)
+                        deviceMode.innerText = ` ${resultItems.DEVICE_MODE}`
+                        deviceMode.setAttribute('device_mode', resultItems.DEVICE_MODE)
+                    }
+                }
+            } else {
                 this.barcodeCount++
-
+                let fragment = document.createDocumentFragment()
                 let newChild = document.createElement('div')
                 newChild.classList.add('barcode-list-nav')
+                newChild.innerText = `【Device${this.barcodeCount}】 `
 
-                let copyButton
-                if(resultItems.SIN){
-                    let child1 = document.createElement('span')
-                    child1.classList.add('barcode-content')
-                    child1.textContent = this.barcodeCount + '.SIN: ' + resultItems.SIN
-                    copyButton = this.createCopyButton(resultItems.SIN)
-                    child1.appendChild(copyButton)
-                    newChild.appendChild(child1)
-                }
+                let contentSpan = document.createElement('span')
+                contentSpan.id = MacId
+                contentSpan.className = 'device-content'
 
-                if(resultItems.MAC){
-                    let child2 = document.createElement('span')
-                    child2.classList.add('barcode-content')
-                    child2.textContent = this.barcodeCount + '.MAC: ' + resultItems.MAC
-                    copyButton = this.createCopyButton(resultItems.MAC)
-                    child2.appendChild(copyButton)
-                    newChild.appendChild(child2)
-                }
+                let verSpan = document.createElement('span')
+                verSpan.className = 'device-ver'
+                contentSpan.appendChild(verSpan)
+                let modeSpan = document.createElement('span')
+                modeSpan.className = 'device-mode'
+                contentSpan.appendChild(modeSpan)
+                let macSpan = document.createElement('span')
+                macSpan.className = 'device-mac'
+                contentSpan.appendChild(macSpan)
 
+                // 显示内容拼接为格式： V1.1A WP836 (MAC：EC74D751CB60) 
                 if(resultItems.VERSION){
-                    let child3 = document.createElement('span')
-                    child3.classList.add('barcode-content')
-                    child3.textContent = this.barcodeCount + '.VERSION: ' + resultItems.VERSION
-                    copyButton = this.createCopyButton(resultItems.VERSION)
-                    child3.appendChild(copyButton)
-                    newChild.appendChild(child3)
+                    verSpan.innerText = `${resultItems.VERSION}`
+                    verSpan.setAttribute('device_ver', resultItems.VERSION)
                 }
-
+                if(resultItems.DEVICE_MODE){
+                    modeSpan.innerText = ` ${resultItems.DEVICE_MODE}`
+                    modeSpan.setAttribute('device_mode', resultItems.DEVICE_MODE)
+                }
+                macSpan.innerText = `（MAC：${resultItems.MAC}）`
+                macSpan.setAttribute('device_mac', resultItems.MAC)
+                
+                newChild.appendChild(contentSpan)
                 fragment.appendChild(newChild)
-            }
-
-            if(fragment) {
                 this.resultsContainer.appendChild(fragment)
-            }else {
-                console.log('Nothing to get!')
-                this.onErrorCatch('Nothing to get!')
+
+                // 文本拷贝按钮
+                let copyButton = this.createCopyButton(contentSpan)
+                newChild.appendChild(copyButton)
+
+                // 设置newChild hover时，显示拷贝文本按钮
+                newChild.addEventListener('mouseenter', function(){
+                    newChild.querySelector('.copy-button').classList.remove('hide')
+                })
+                newChild.addEventListener('mouseleave', function(){
+                    newChild.querySelector('.copy-button').classList.add('hide')
+                })
             }
-        }else {
-            console.log('Nothing to get!')
-            this.onErrorCatch('Nothing to get!')
         }
     },
 
     /**
      * 创建copy按钮
      */
-    createCopyButton: function(text){
+    createCopyButton: function(targetElement){
         let copyButton = document.createElement('span')
-        copyButton.classList.add('copy-button')
+        copyButton.className = 'copy-button hide'
         copyButton.innerText = 'Copy'
         copyButton.onclick = async function(){
-            await navigator.clipboard.writeText(text)
+            console.log('Copy text:', targetElement.innerText)
+            await navigator.clipboard.writeText(targetElement.innerText)
             copyButton.innerText = 'Copied'
             copyButton.classList.add('copy-button-Copied')
+
             setTimeout(() => {
                 copyButton.innerText = 'Copy'
                 copyButton.classList.remove('copy-button-Copied')
@@ -356,14 +447,10 @@ let imageRecognizer = {
         }
 
         if(this.decodeText.innerText !== errorText) {
-            console.error('Error catch:', e)
+            // console.error('Error catch:', e)
             this.decodeText.innerText = errorText
             this.decodeTip.classList.remove('hide')
         }
-    },
-
-    getSelectedDeviceId: function(){
-        
     },
 
     /**
