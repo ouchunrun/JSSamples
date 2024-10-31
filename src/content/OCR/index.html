@@ -7,14 +7,15 @@
     <title>OCR with Tesseract.js</title>
     <link rel="stylesheet" href="css/style.css">
 
-    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-    <!-- <script src="dist/tesseract.js/tesseract.min.js"></script> -->
+    <!-- <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script> -->
+    <script src="dist/tesseract.js/tesseract.min.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="container-left">
           <div class="container-title">
             <span class="container-result-title">Results</span>
+            <button id="copy">Copy All</button>
           </div>
           <div id="results" class="barcode-list" disabled></div>
         </div>

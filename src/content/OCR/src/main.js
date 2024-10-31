@@ -39,6 +39,7 @@ let imageRecognizer = {
         GDS: /GDS\d{1,4}/,
         GXP: /GXP\d{1,4}/,
         GHP: /GHP\d{1,4}/,
+        GWN: /GWN\d{1,4}/,
     },
     
     /**
@@ -54,12 +55,14 @@ let imageRecognizer = {
         this.resultsContainer = document.querySelector("#results")
         this.decodeTip = document.querySelector('.decode-tip')
         this.decodeText = document.querySelector('.decode-tip-text')
+        this.copyButton = document.getElementById('copy')
 
         this.deviceSelect = document.getElementById('videoList')
         this.deviceSelect.addEventListener('change',  this.handleDeviceSelectChange.bind(this))
         this.video = document.getElementById('video')
         this.canvas = document.getElementById('canvas')
         this.video.addEventListener('loadeddata',  this.handleVideoLoadeddata.bind(this))
+        this.copyButton.addEventListener('click',  this.handleCopyButtonClickEvent.bind(this))
 
         this.startButton.addEventListener('click',  this.startCamera.bind(this))
         this.stopButton.addEventListener('click',  this.stopScanning.bind(this))
@@ -68,14 +71,14 @@ let imageRecognizer = {
         this.stopButton.disabled = true
         this.startButton.disabled = false
 
-        // this.worker = await Tesseract.createWorker("eng", 1, {
-        //     corePath: 'dist/tesseract.js-core',
-        //     workerPath: "dist/tesseract.js/worker.min.js",
-        //     logger: function(m){
-        //         console.log(m);
-        //     }
-        // })
-        this.worker = await Tesseract.createWorker("eng")
+        this.worker = await Tesseract.createWorker("eng", 1, {
+            corePath: 'dist/tesseract.js-core',
+            workerPath: "dist/tesseract.js/worker.min.js",
+            // logger: function(m){
+            //     console.log(m);
+            // }
+        })
+        // this.worker = await Tesseract.createWorker("eng")
         console.warn('create Tesseract worker', this.worker)
 
         // 要获取当前设备上的摄像头列表
@@ -377,7 +380,7 @@ let imageRecognizer = {
                     fragment.appendChild(newChild)
                     this.resultsContainer.appendChild(fragment)
     
-                    // 文本拷贝按钮
+                    文本拷贝按钮
                     let copyButton = this.createCopyButton(contentSpan)
                     newChild.appendChild(copyButton)
     
@@ -414,6 +417,31 @@ let imageRecognizer = {
             }, 2000)
         }
         return copyButton
+    },
+
+    /**
+     * 点击拷贝全部结果
+     */
+    handleCopyButtonClickEvent: async function(e){
+         // 获取所有 class 为 device-content 的元素
+        const elements = document.querySelectorAll('.device-content')
+        if(elements.length === 0){
+            console.log('No device content found.')
+            return
+        }
+        
+        // 提取所有元素的文本内容并用换行符连接
+        let textToCopy = Array.from(elements).map(element => element.textContent).join('\n')
+        console.log('拷贝文本:', textToCopy)
+        await navigator.clipboard.writeText(textToCopy)
+
+        this.copyButton.innerText = 'Copied Success'
+        this.copyButton.classList.add('copy-button-Copied')
+
+        setTimeout(() => {
+            this.copyButton.innerText = 'Copy All'
+            this.copyButton.classList.remove('copy-button-Copied')
+        }, 2000)
     },
 
     /**
