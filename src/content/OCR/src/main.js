@@ -1,4 +1,4 @@
-// Tesseract.createWorker
+// Tesseract.createWorker 
 
 let imageRecognizer = {
     // 页面元素
@@ -68,13 +68,14 @@ let imageRecognizer = {
         this.stopButton.disabled = true
         this.startButton.disabled = false
 
-        this.worker = await Tesseract.createWorker("eng", 1, {
-          corePath: 'dist/tesseract.js-core',
-          workerPath: "dist/tesseract.js/worker.min.js",
-          logger: function(m){
-            // console.log(m);
-        }
-        })
+        // this.worker = await Tesseract.createWorker("eng", 1, {
+        //     corePath: 'dist/tesseract.js-core',
+        //     workerPath: "dist/tesseract.js/worker.min.js",
+        //     logger: function(m){
+        //         console.log(m);
+        //     }
+        // })
+        this.worker = await Tesseract.createWorker("eng")
         console.warn('create Tesseract worker', this.worker)
 
         // 要获取当前设备上的摄像头列表
