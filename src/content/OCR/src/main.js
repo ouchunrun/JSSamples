@@ -69,8 +69,8 @@ let imageRecognizer = {
         this.startButton.disabled = false
 
         this.worker = await Tesseract.createWorker("eng", 1, {
-          corePath: './dist/tesseract.js-core',
-          workerPath: "./dist/tesseract.js/worker.min.js",
+          corePath: 'dist/tesseract.js-core',
+          workerPath: "dist/tesseract.js/worker.min.js",
           logger: function(m){
             // console.log(m);
         }
